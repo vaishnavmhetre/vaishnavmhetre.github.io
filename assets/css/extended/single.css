@@ -624,19 +624,24 @@ html[data-theme="light"] {
 
 .vm-article .vm-article-body .vm-figure--diagram .vm-diagram__img {
     display: block;
-    /* A cap, not `max-width: 100%`. PaperMod ships a global
-       `img { max-width: 100% }`, which scales a wide diagram down to fit the
-       measure — at roughly 0.4x, putting the 20px node labels near 8px, the
-       illegibility this migration removed Mermaid for. `none` is the other
-       extreme and is just as wrong: it lets a figure barely wider than the
-       measure overflow, clipping a node mid-shape.
+    /* Fit the measure, never overflow. `max-width` is stated explicitly
+       rather than left to PaperMod's global `img { max-width: 100% }` so the
+       intent is readable here and survives a theme change.
 
-       The cap sits between the two. A diagram up to ~1.4x the measure is
-       allowed to overflow and scroll, so its text renders at full size; past
-       that it would need a very long scroll to read, so it is scaled back to
-       fit. Effective label size is therefore never worse than about 14px.
-       01-ai-pipeline (621px) and 04 (tall) scroll; nothing is ever clipped. */
-    max-width: 820px;
+       An earlier version capped at 820px so a slightly wide figure would
+       scroll at full size instead of shrinking. Measured, that was solving a
+       problem that did not exist: the only figure wider than the 566px
+       measure is 01-ai-pipeline at 621px, and scaling it to fit costs 9% of
+       its label size — 20px down to 18.2px. Trading 55px of horizontal scroll
+       for a 1.8px reduction in text size is a bad deal, and a reader had to
+       discover the scroll to see the whole figure.
+
+       A figure wide enough for this to actually hurt is prevented at build
+       time instead: build.py flags any diagram whose intrinsic width would
+       put its labels below 15px at the article measure (i.e. wider than
+       ~755px), and docs/diagrams.md explains why. So the runtime has one
+       behaviour, not two. */
+    max-width: 100%;
     height: auto;
     margin-inline: auto;
 }

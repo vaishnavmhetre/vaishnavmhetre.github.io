@@ -203,6 +203,17 @@ def src(d,t,th):
     return "\n".join(L)
 
 GAP=15.0
+# Layout budget, used only to self-check the result. MEASURE_PX is the width a
+# diagram gets inside the article (68ch measure, ~566px in CSS px at the prose
+# size) and FS is the node label size authored below. A figure wider than
+# MEASURE_PX is scaled down by the browser, so these two numbers together give
+# the label size a reader actually sees.
+MEASURE_PX=566.0
+FS=20
+# Below this, node labels stop being comfortably readable. 15px is a judgement
+# call, not a standard: it is roughly where 20px source text stops reading as
+# body copy. The resulting width ceiling is MEASURE_PX*FS/FS_MIN = 755px.
+FS_MIN=15.0
 os.makedirs(OUT, exist_ok=True)
 bad=0
 for name,d in DIAGRAMS.items():
@@ -225,7 +236,20 @@ for name,d in DIAGRAMS.items():
             if 'fill="#FFFFFF"' in sv: probs.append("white fill left")
             m=re.search(r'viewBox="([^"]+)"',sv)
             if m:
-                _,_,w,h=m.group(1).split(); ar=f"AR {float(w)/float(h):.2f}"
+                _,_,w,h=m.group(1).split()
+                w=float(w); ar=f"AR {w/float(h):.2f}"
+                # Width is the axis that hurts, not height. CSS fits every
+                # diagram to the article measure (max-width:100%), so a figure
+                # wider than that is scaled down rather than scrolled, and its
+                # labels shrink with it. Flag any figure whose labels would
+                # land under FS_MIN there, while it is still cheap to fix,
+                # rather than discovering it as 4.7px text on the live page.
+                if w>MEASURE_PX:
+                    eff=FS*MEASURE_PX/w
+                    if eff<FS_MIN:
+                        probs.append(f"{int(w)}px wide -> labels {eff:.1f}px at the "
+                                     f"{int(MEASURE_PX)}px measure (floor {FS_MIN}px; "
+                                     f"keep under {int(MEASURE_PX*FS/FS_MIN)}px)")
             n=sv.count('data:image/svg+xml;base64,')
             if n!=len(d["nodes"]): probs.append(f"icons {n}/{len(d['nodes'])}")
         else:

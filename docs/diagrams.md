@@ -284,20 +284,30 @@ the figure was then split into two instead, which is the only thing that worked.
 Note the asymmetry that makes this confusing: a *tall* figure keeps its full
 label size and just gets long, while a *wide* figure loses its label size
 entirely. So "too tall" is a survivable problem and "too wide" is not. Check
-the intrinsic width first, and treat anything past the 820px CSS cap as a bug
-rather than a style choice.
+the intrinsic width first: **755px is the ceiling**, and `build.py` fails a
+figure past it with the label size it would render at.
 
-Both of the two CSS extremes have now been shipped and reverted, so the rule
-is a middle ground:
+CSS has one behaviour, not two: `max-width: 100%`. Every diagram is fitted to
+the measure and **nothing scrolls horizontally**. A reader never has to
+discover a scroll to see the whole figure.
 
-- `max-width: 100%` shrinks everything to fit. Correct for a slightly wide
-  figure, illegible for a very wide one.
+Two alternatives were shipped and reverted, and the measurements are why:
+
 - `max-width: none` never shrinks, so a figure barely wider than the measure
   overflows and **clips a node mid-shape**. This regressed `01-ai-pipeline`
   (621px) before it was caught.
-- The shipped value is `max-width: 820px`: a figure up to ~1.4x the measure
-  overflows and scrolls, keeping text at full size; anything wider is scaled
-  back. Nothing clips, and no label renders below roughly 14px.
+- `max-width: 820px` let a figure up to ~1.4x the measure scroll at full size
+  instead of shrinking. It was meant to preserve label size, but measured it
+  was solving a problem that did not exist: the only figure over the measure
+  is `01-ai-pipeline` at 621px, and fitting it costs **9% of its label size —
+  20px down to 18.2px**. Trading 55px of scroll for 1.8px of text is a bad
+  deal, so the cap is gone and the real protection is the build-time check
+  above.
+
+The reason a single behaviour is safe is that the generator enforces the
+ceiling where it is cheap to fix. A figure wide enough for the fit to actually
+hurt — the 2399px ribbon at 4.7px labels — is a build-time `CHECK`, not a
+published page.
 
 So:
 
@@ -345,9 +355,12 @@ Being honest about what is currently wrong:
   enrich) + `02b` (pack and deliver); `04` is now `04a` (the retired bespoke
   path) + `04b` (the shared pipeline that replaces it). Each half is 3-4 stages
   and under 850px. Do not merge them back into one figure.
-- **`01-ai-pipeline` is the widest figure (621px) and scrolls ~55px**
-  horizontally at the article measure. The `max-width: 820px` cap lets it
-  overflow rather than shrink its labels; see the CSS discussion above.
+- **`01-ai-pipeline` is the widest figure at 621px**, 55px over the 566px
+  measure, so it is the one figure that renders scaled rather than 1:1 — its
+  labels land at 18.2px instead of 20px. That is the accepted cost of never
+  scrolling, and it is within the 755px ceiling. It is also the only figure
+  whose width is driven by a genuine branch (one spine, two payloads), so it
+  cannot be narrowed without changing what it says.
 - D2 emits an opaque background `<rect fill="#FFFFFF">` covering the whole
   canvas. Confirm it is not visible in dark mode before you consider this
   section closed.
