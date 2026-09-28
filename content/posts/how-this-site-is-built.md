@@ -3,7 +3,7 @@ title: "How this site is built: static output, no diagram runtime, and the bugs 
 date: 2026-09-28
 draft: false
 tags: [hugo, css]
-summary: "Notes on rebuilding the diagrams on this site to render at build time instead of in the browser, and on the three classes of bug that only showed up once something was measured properly."
+summary: "Notes on moving this site's diagrams to render at build time instead of in the browser, and on the three classes of bug that only showed up once something was measured properly."
 hero: true
 showtoc: true
 ---

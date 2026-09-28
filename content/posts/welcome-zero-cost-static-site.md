@@ -1,5 +1,5 @@
 ---
-title: "Why I rebuilt this site as a static site: zero-cost, zero-node infrastructure"
+title: "Why I built this site static: zero-cost, zero-node infrastructure"
 date: 2026-09-24
 draft: false
 tags: [hugo]
