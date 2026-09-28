@@ -47,11 +47,19 @@ DIAGRAMS = {
   ("c","Consumer fetches","rectangle","monitor"),("r","Re-verify checksum","hexagon","check")],
   edges=[("w","v"),("v","p"),("p","m"),("m","c"),("c","r")]),
 "04-before-after": dict(dirn="down", nodes=[
-  ("s1","Forecast service","rectangle","monitor"),("q1","Own query and retries","rectangle","search"),
-  ("x1","Direct database reads","cylinder","database"),
-  ("s2","Forecast service","rectangle","monitor"),("c","Delivery subscription","rectangle","swap"),
-  ("p","Shared pipeline","rectangle","sliders"),("o","Object storage","cylinder","storage")],
-  edges=[("s1","q1"),("q1","x1"),("x1","c"),("c","p"),("p","o"),("o","s2")]),
+   ("s1","Forecast service","rectangle","monitor"),("q1","Own query and retries","rectangle","search"),
+   ("x1","Direct database reads","cylinder","database"),
+   ("s2","Forecast service","rectangle","monitor"),("c","Delivery subscription","rectangle","swap"),
+   ("p","Shared pipeline","rectangle","sliders"),("o","Object storage","cylinder","storage")],
+   # The first three nodes are the path being replaced and the last four are
+   # what replaces it. Without this split the figure was seven identically
+   # styled boxes, so "Forecast service" appeared twice with nothing marking
+   # which copy was old. Containers were tried first and made the figure
+   # taller (dagre stacks them), so the distinction is carried by the nodes
+   # instead: dashed + dimmed for the retired half, solid for the current one.
+   group_of={"s1":"retired","q1":"retired","x1":"retired",
+             "s2":"current","c":"current","p":"current","o":"current"},
+   edges=[("s1","q1"),("q1","x1"),("x1","c"),("c","p"),("p","o"),("o","s2")]),
 "05-cutover": dict(dirn="down", nodes=[
   ("a","Bespoke path","rectangle","server"),("b","Shadow both, compare","hexagon","shield"),
   ("c","Pipeline authoritative","rectangle","sliders"),("d","Fallback window closes","hexagon","check"),
@@ -67,6 +75,25 @@ THEME={"light":dict(fill="#FFF3E4",stroke="#CE651B",ink="#241005",edge="#C24E0C"
                     icons="assets/icons/light",fs=20),
       "dark" :dict(fill="#2D1608",stroke="#CE651B",ink="#FFF7ED",edge="#FF8C2E",
                     icons="assets/icons/dark", fs=20)}
+# A node's group may override fill/stroke so the two halves of a before/after
+# diagram are told apart by the drawing itself. These are the same hue family as
+# the node palette, one step apart, so the figure still reads as one system
+# rather than two colour-coded halves. A dashed stroke marks the half that is
+# being replaced; the replacement half is solid, so the handover is visible
+# without needing a caption to explain it.
+GROUP_STYLE={
+  "retired":  dict(dash=True,  stroke="#B4541B"),
+  "current":  dict(dash=False, stroke="#CE651B"),
+  "handover": dict(stroke="#B4541B"),
+}
+# The retired half is also dimmed by fill. Light and dark need different
+# values: a light-mode fill is unreadable on the espresso surface, so each
+# theme carries its own. `fill` here is "how much this node recedes", not a
+# brand colour.
+GROUP_FILL={"light":dict(retired="#F6E7D6", current="#FFF3E4"),
+            "dark" :dict(retired="#3A1C0A", current="#2D1608")}
+# Dashed borders are the convention for "being replaced"; the replacement half
+# stays solid so the handover reads without a caption.
 
 
 def open_icon_label_gap(svg_text, gap=15.0):
@@ -136,15 +163,29 @@ def inline_icons(svg_text):
         return tag.replace('href="%s"' % path, 'href="%s"' % uri, 1)
     return re.sub(r'<image\b[^>]*/>', sub, svg_text)
 
-def src(d,t):
+def _node(k,label,shape,role,t,th,group=None):
+    st=GROUP_STYLE.get(group or "",{})
+    fill=GROUP_FILL[th].get(group or "",t["fill"])
+    L=[f'{k}: "{label}" {{', f'  shape: {shape}', f'  icon: {t["icons"]}/{role}.svg',
+       f'  style.fill: "{fill}"', f'  style.stroke: "{st.get("stroke",t["stroke"])}"',
+       f'  style.font-color: "{t["ink"]}"', f'  style.font-size: "{t["fs"]}"',
+       '  style.border-radius: 10']
+    if st.get("dash"): L += ['  style.stroke-dash: 3']
+    L += ['}']
+    return L
+
+def src(d,t,th):
     L=[f"direction: {d['dirn']}","vars: {","  d2-config: {","    pad: 40","    layout-engine: dagre","  }","}"]
+    g_of=d.get("group_of",{})
     for k,label,shape,role in d["nodes"]:
-        L += [f'{k}: "{label}" {{', f'  shape: {shape}', f'  icon: {t["icons"]}/{role}.svg',
-              f'  style.fill: "{t["fill"]}"', f'  style.stroke: "{t["stroke"]}"',
-              f'  style.font-color: "{t["ink"]}"', f'  style.font-size: "{t["fs"]}"',
-              '  style.border-radius: 10', '}']
+        L += _node(k,label,shape,role,t,th,g_of.get(k))
     for a,b in d["edges"]:
-        L += [f'{a} -> {b}: {{', f'  style.stroke: "{t["edge"]}"', '  style.stroke-width: 2', '}']
+        # The handover edge (retired half -> current half) is the one that
+        # carries the meaning, so it takes the accent stroke. Edges inside a
+        # half stay on the normal edge colour.
+        handover = g_of.get(a)=="retired" and g_of.get(b)=="current"
+        edge=GROUP_STYLE["handover"]["stroke"] if handover else t["edge"]
+        L += [f'{a} -> {b}: {{', f'  style.stroke: "{edge}"', '  style.stroke-width: 2', '}']
     return "\n".join(L)
 
 GAP=15.0
@@ -153,7 +194,7 @@ bad=0
 for name,d in DIAGRAMS.items():
     for th,t in THEME.items():
         f=f"/tmp/{name}.{th}.d2"; o=f"{OUT}/{name}.{th}.svg"
-        open(f,"w").write(src(d,t))
+        open(f,"w").write(src(d,t,th))
         r=subprocess.run(["d2","--layout=dagre",f,o],capture_output=True,text=True)
         ok=os.path.exists(o); ar=""; n=0; probs=[]
         if ok:

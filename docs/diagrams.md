@@ -155,6 +155,25 @@ They are independent on purpose. `05-cutover` ends with a `rectangle` carrying a
 process, the icon says what it now is, the label says what it means. Collapsing
 any two of them into one channel loses information.
 
+### Node groups: distinguishing two states in one chain
+
+A `group_of` mapping on a diagram styles nodes by role, so a before/after figure
+can show the change in the drawing instead of only describing it in a caption.
+`04-before-after` marks the first three nodes `retired` and the last four
+`current`: retired nodes get a dimmed fill and a dashed border, current nodes
+stay solid, and the edge crossing from `retired` to `current` takes the accent
+stroke. Fills are per theme (`GROUP_FILL`), because a light-mode dim is
+unreadable on the espresso surface.
+
+Without it that figure was seven identically styled boxes and "Forecast
+service" appeared twice with nothing marking which copy was old — the caption
+promised a contrast the drawing did not contain.
+
+**Do not reach for D2 containers to group nodes.** They were tried and are
+worse here: dagre stacks the containers, which took the figure from 1500px to
+2307px tall, and `direction: right` blew the aspect ratio out to 6.69. Per-group
+node styling gives the same distinction at the original size.
+
 ## Labels
 
 **Every node carries a meaningful text label. This is a hard rule.**
