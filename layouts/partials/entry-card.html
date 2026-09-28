@@ -14,10 +14,13 @@
        so a card cannot be mislabelled by a careless caller. CSS lives in
        assets/css/extended/list.css.
 
-       Tag pills: every tag on the entry is rendered, sourced through
-       GetTerms so the hrefs are real taxonomy pages. S5 adds the "≥2 entries
-       so the axis is worth showing" filter here; it is deliberately NOT
-       applied yet (additive, one line: wrap the range in a length check). */ -}}
+       Tag pills: sourced through GetTerms so every href is a real taxonomy
+       page, then filtered to the terms that earned the axis -- a term needs
+       params.minTagEntries entries, because a one-entry term is a thin page
+       (D5: noindex + out of the sitemap) and a pill would advertise exactly
+       the page that must not be indexed. The count is read from the term's
+       own .Pages, so no tag name is hardcoded here and a term turns visible
+       by itself the moment a second entry is tagged with it. */ -}}
 {{- $page := .page -}}
 {{- $level := .heading | default 2 -}}
 {{- $isCase := eq $page.Section "case-studies" -}}
@@ -37,7 +40,13 @@
         {{- with $page.ReadingTime }}
         <span class="vm-entry-read">{{ . }} min read</span>
         {{- end }}
-        {{- with $page.GetTerms "tags" }}
+        {{- $pills := slice }}
+        {{- range $page.GetTerms "tags" }}
+        {{- if ge (len .Pages) (site.Params.minTagEntries | default 2) }}
+        {{- $pills = $pills | append . }}
+        {{- end }}
+        {{- end }}
+        {{- with $pills }}
         <ul class="vm-entry-pills">
             {{- range . }}
             <li><a class="vm-entry-pill" href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>

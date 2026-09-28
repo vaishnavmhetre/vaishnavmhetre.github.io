@@ -2,7 +2,7 @@
 title: "Foundations for AI-driven initiatives"
 date: 2026-09-24
 draft: false
-tags: [ai, platform]
+tags: [platform, event-driven]
 summary: "A case study about engineering the data and delivery foundations that AI-driven initiatives depend on — reusing the pipeline, not rebuilding bespoke paths."
 ---
 

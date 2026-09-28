@@ -1,8 +1,21 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-{{- if hugo.IsProduction | or (eq site.Params.env "production") | and (ne .Params.robotsNoIndex true) }}
+{{- /* Slice 05 (contract D5) — thin tag terms. A term page holding fewer
+       than params.minTagEntries entries is a thin page: it stays reachable
+       (it is linked from /tags/ and every entry card) but it is `noindex`
+       so two thin terms cannot outrank the real ones in search. `follow` is
+       kept so crawlers still walk out of it.
+
+       Classification is counted from the term's own .Pages, never from a list
+       of tag names, so a future tag is judged by its real entry count
+       instead of needing an edit here. Gated on Kind "term" AND the tags
+       taxonomy, so home, sections and /tags/ itself are unaffected. */ -}}
+{{- $thinTagTerm := and (eq .Kind "term") (eq .Data.Plural "tags") (lt (len .Pages) (site.Params.minTagEntries | default 2)) }}
+{{- if and (hugo.IsProduction | or (eq site.Params.env "production")) (ne .Params.robotsNoIndex true) (not $thinTagTerm) }}
 <meta name="robots" content="index, follow">
+{{- else if $thinTagTerm }}
+<meta name="robots" content="noindex, follow">
 {{- else }}
 <meta name="robots" content="noindex, nofollow">
 {{- end }}

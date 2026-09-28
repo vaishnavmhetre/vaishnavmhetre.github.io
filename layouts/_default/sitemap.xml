@@ -1,0 +1,34 @@
+{{- /* Slice 05 (contract D5) — sitemap, thin tag terms removed.
+
+       This is Hugo's embedded sitemap template (v0.9 protocol) with one extra
+       gate: a tag term page holding fewer than params.minTagEntries entries is
+       dropped, matching the `noindex` that layouts/partials/head.html emits
+       for the same page. Without this, a one-entry term would still be
+       advertised in sitemap.xml while telling crawlers not to index it.
+
+       Config cannot do this: sitemap exclusion is per-page front matter
+       (`sitemap.disable`) and taxonomy terms have no front matter, so the only
+       lever is this template — which slice 05's file table allows ("per-term
+       _build/sitemap config OR template filter"). Everything else is
+       Hugo's template verbatim: the Sitemap.Disable filter, lastmod,
+       changefreq, priority and the hreflang alternates. */ -}}
+{{ printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  {{ range where .Pages "Sitemap.Disable" "ne" true }}
+    {{- $thinTagTerm := and (eq .Kind "term") (eq .Data.Plural "tags") (lt (len .Pages) (site.Params.minTagEntries | default 2)) }}
+    {{- if and .Permalink (not $thinTagTerm) -}}
+  <url>
+    <loc>{{ .Permalink }}</loc>{{ if not .Lastmod.IsZero }}
+    <lastmod>{{ safeHTML ( .Lastmod.Format "2006-01-02T15:04:05-07:00" ) }}</lastmod>{{ end }}{{ with .Sitemap.ChangeFreq }}
+    <changefreq>{{ . }}</changefreq>{{ end }}{{ if ge .Sitemap.Priority 0.0 }}
+    <priority>{{ .Sitemap.Priority }}</priority>{{ end }}{{ if .IsTranslated }}{{ range .AllTranslations }}
+    <xhtml:link
+                rel="alternate"
+                hreflang="{{ .Language.Locale }}"
+                href="{{ .Permalink }}"
+                />{{ end }}{{ end }}
+  </url>
+    {{- end -}}
+  {{ end }}
+</urlset>
