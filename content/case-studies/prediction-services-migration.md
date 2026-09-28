@@ -15,7 +15,9 @@ Prediction services — such as a pricing forecast backend — need data to make
 
 The frame for the work was consolidation. Prediction services should not each reinvent how they get data. They should sit on the shared delivery pipeline, inherit its guarantees, and spend their effort on the prediction itself.
 
-{{< diagram name="04-before-after" alt="One path shown end to end, split into the two halves of the change. The dashed nodes are the path being replaced: the forecast service owning its query, its retries, and its direct database reads. The solid nodes are what replaces it: the same service holding a delivery subscription and reading from a shared pipeline that writes to object storage. The edge from direct database reads to the delivery subscription is the migration point." caption="The dashed nodes are the path being replaced; the solid nodes are what replaces it." >}}
+{{< diagram name="04a-before-bespoke" alt="The forecast service owns its own query, its own retry handling, and its own direct database reads. This is the path that gets replaced." caption="Before: every service owns the whole path, retries included." >}}
+
+{{< diagram name="04b-after-shared" alt="The forecast service instead holds a delivery subscription, and reads from a shared pipeline that writes to object storage. The service no longer owns the query, the retries, or the database access." caption="After: the service keeps a subscription and the pipeline owns the path." >}}
 
 ## The data contract first
 

@@ -15,7 +15,9 @@ At NielsenIQ, the core job is taking retail measurement data — POS transaction
 
 The design question was never "how do we produce the file". It was "how do we get data from the database, through the processing chain, and out to consumers without the pipeline becoming the bottleneck".
 
-{{< diagram name="02-delivery-pipeline" alt="A source database is queried with the filter pushed down, so the filter stage and then the enrichment stage only ever receive rows that already match it. The result is packed into frames and written to object storage, which a consumer then loads." caption="Filter pushdown is the load-bearing step: enrichment must never receive a superset." >}}
+{{< diagram name="02a-query-and-enrich" alt="A source database is queried with the filter pushed down, so the filter stage and then the enrichment stage only ever receive rows that already match it." caption="Filter pushdown is the load-bearing step: enrichment must never receive a superset." >}}
+
+{{< diagram name="02b-pack-and-deliver" alt="The enriched result is packed into frames, written to object storage, and then loaded by a consumer." caption="Enriched rows become a payload a consumer can load." >}}
 
 ## Why binary
 

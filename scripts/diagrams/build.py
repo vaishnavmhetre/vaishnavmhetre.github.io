@@ -35,31 +35,45 @@ DIAGRAMS = {
   ("prod","Production payload","cylinder","database"),("ai","AI training inputs","cylinder","chart"),
   ("mdl","Model store","cylinder","server")],
   edges=[("src","qry"),("qry","enr"),("enr","pack"),("pack","prod"),("pack","ai"),("ai","mdl")]),
-"02-delivery-pipeline": dict(dirn="down", nodes=[
+# 02 and 04 are each SPLIT INTO TWO FIGURES rather than drawn as one tall
+# column. Seven stacked stages in a 566px measure render at 1500px, and there
+# is no layout that fixes that: a landscape `direction: right` chain collapses
+# to 4.7px text at 87px tall, and D2 groups (containers) are stacked vertically
+# by dagre regardless of direction, so grouping made it TALLER (1686px), not
+# shorter. Height here is decided by the number of nodes, so the only lever is
+# fewer nodes per figure. Each half is 3-4 stages and reads as one idea.
+"02a-query-and-enrich": dict(dirn="down", nodes=[
   ("db","Source database","cylinder","database"),("push","Filter pushdown","rectangle","search"),
-  ("flt","Filter stage","rectangle","filter"),("enr","Enrichment stage","rectangle","cpu"),
-  ("pack","Pack and frame","rectangle","package"),("obj","Object storage","cylinder","storage"),
+  ("flt","Filter stage","rectangle","filter"),("enr","Enrichment stage","rectangle","cpu")],
+  edges=[("db","push"),("push","flt"),("flt","enr")]),
+"02b-pack-and-deliver": dict(dirn="down", nodes=[
+  ("pack","Pack and frame","rectangle","package"),
+  ("obj","Object storage","cylinder","storage"),
   ("con","Consumer loads payload","rectangle","monitor")],
-  edges=[("db","push"),("push","flt"),("flt","enr"),("enr","pack"),("pack","obj"),("obj","con")]),
+  edges=[("pack","obj"),("obj","con")]),
 "03-file-lifecycle": dict(dirn="down", nodes=[
   ("w","Write payload","rectangle","save"),("v","Verify count and checksum","hexagon","shield"),
   ("p","Publish under final key","rectangle","swap"),("m","Write delivery manifest","rectangle","save"),
   ("c","Consumer fetches","rectangle","monitor"),("r","Re-verify checksum","hexagon","check")],
   edges=[("w","v"),("v","p"),("p","m"),("m","c"),("c","r")]),
-"04-before-after": dict(dirn="down", nodes=[
-   ("s1","Forecast service","rectangle","monitor"),("q1","Own query and retries","rectangle","search"),
-   ("x1","Direct database reads","cylinder","database"),
-   ("s2","Forecast service","rectangle","monitor"),("c","Delivery subscription","rectangle","swap"),
-   ("p","Shared pipeline","rectangle","sliders"),("o","Object storage","cylinder","storage")],
-   # The first three nodes are the path being replaced and the last four are
-   # what replaces it. Without this split the figure was seven identically
-   # styled boxes, so "Forecast service" appeared twice with nothing marking
-   # which copy was old. Containers were tried first and made the figure
-   # taller (dagre stacks them), so the distinction is carried by the nodes
-   # instead: dashed + dimmed for the retired half, solid for the current one.
-   group_of={"s1":"retired","q1":"retired","x1":"retired",
-             "s2":"current","c":"current","p":"current","o":"current"},
-   edges=[("s1","q1"),("q1","x1"),("x1","c"),("c","p"),("p","o"),("o","s2")]),
+# 04 splits at the handover point, which is also the semantic boundary: the
+# first figure is the path being retired, the second is what replaces it. Every
+# node is `retired` here, so they stay dashed and dimmed. Keeping that styling
+# is what makes the pair read as one before/after across two figures, instead
+# of two unrelated diagrams.
+"04a-before-bespoke": dict(dirn="down", nodes=[
+   ("s1","Forecast service","rectangle","monitor"),
+   ("q1","Own query and retries","rectangle","search"),
+   ("x1","Direct database reads","cylinder","database")],
+   group_of={"s1":"retired","q1":"retired","x1":"retired"},
+   edges=[("s1","q1"),("q1","x1")]),
+"04b-after-shared": dict(dirn="down", nodes=[
+   ("c","Delivery subscription","rectangle","swap"),
+   ("p","Shared pipeline","rectangle","sliders"),
+   ("o","Object storage","cylinder","storage"),
+   ("s2","Forecast service reads","rectangle","monitor")],
+   group_of={"c":"current","p":"current","o":"current","s2":"current"},
+   edges=[("c","p"),("p","o"),("o","s2")]),
 "05-cutover": dict(dirn="down", nodes=[
   ("a","Bespoke path","rectangle","server"),("b","Shadow both, compare","hexagon","shield"),
   ("c","Pipeline authoritative","rectangle","sliders"),("d","Fallback window closes","hexagon","check"),

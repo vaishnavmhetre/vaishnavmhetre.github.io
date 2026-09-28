@@ -155,19 +155,26 @@ They are independent on purpose. `05-cutover` ends with a `rectangle` carrying a
 process, the icon says what it now is, the label says what it means. Collapsing
 any two of them into one channel loses information.
 
-### Node groups: distinguishing two states in one chain
+### Node groups: distinguishing two states
 
 A `group_of` mapping on a diagram styles nodes by role, so a before/after figure
 can show the change in the drawing instead of only describing it in a caption.
-`04-before-after` marks the first three nodes `retired` and the last four
-`current`: retired nodes get a dimmed fill and a dashed border, current nodes
-stay solid, and the edge crossing from `retired` to `current` takes the accent
+`retired` nodes get a dimmed fill and a dashed border, `current` nodes stay
+solid, and the edge crossing from `retired` to `current` takes the accent
 stroke. Fills are per theme (`GROUP_FILL`), because a light-mode dim is
 unreadable on the espresso surface.
 
-Without it that figure was seven identically styled boxes and "Forecast
-service" appeared twice with nothing marking which copy was old — the caption
-promised a contrast the drawing did not contain.
+The before/after case study is now **two figures** — `04a-before-bespoke` (all
+nodes `retired`) and `04b-after-shared` (all `current`) — so the styling has to
+carry the contrast *across* the pair rather than within one figure. It does: the
+first figure is entirely dashed and dimmed, the second entirely solid, and the
+captions name which is which. Because the two halves are separate, `04b`'s last
+node is labelled "Forecast service reads" instead of repeating the ambiguous
+"Forecast service".
+
+Without the styling the original single figure was seven identically styled
+boxes and "Forecast service" appeared twice with nothing marking which copy was
+old — the caption promised a contrast the drawing did not contain.
 
 **Do not reach for D2 containers to group nodes.** They were tried and are
 worse here: dagre stacks the containers, which took the figure from 1500px to
@@ -267,13 +274,18 @@ column a landscape diagram does not render small, it renders **illegible**. CSS
 cannot fix this: the only choices are shrink everything or scroll. There is no
 third option, and no post-render guard to paper over it.
 
-**Read the effective label size, not the aspect ratio.** A 2223px-wide diagram
-dropped into the 566px measure scales to 0.25x, so 20px node text renders at
-about 5px. A two-column layout that *looks* well proportioned can be far worse
-than a tall single column. `02-delivery-pipeline` was tried as two columns
-specifically to halve its 1500px height, and the result was 5px labels and
-off-palette containers (D2 renders containers with its own blue fill, `#E3E9FD`
-/ `#F7F8FE`, which is not reachable from the `.d2` source). Reverted.
+**Read the effective label size, not the aspect ratio.** A 2399px-wide diagram
+dropped into the 566px measure scales to 0.24x, so 20px node text renders at
+about 5px. A layout that *looks* well proportioned can be far worse than a tall
+single column. `direction: right` was tried on the delivery pipeline specifically
+to halve its height, and the result was a 4.7px-label ribbon. Reverted — and
+the figure was then split into two instead, which is the only thing that worked.
+
+Note the asymmetry that makes this confusing: a *tall* figure keeps its full
+label size and just gets long, while a *wide* figure loses its label size
+entirely. So "too tall" is a survivable problem and "too wide" is not. Check
+the intrinsic width first, and treat anything past the 820px CSS cap as a bug
+rather than a style choice.
 
 Both of the two CSS extremes have now been shipped and reverted, so the rule
 is a middle ground:
@@ -299,29 +311,43 @@ So:
   dashed one carrying the real meaning. This is the single biggest width
   mistake available and it is inherited behaviour from dagre, not from D2.
 
-Measured aspect ratios with `d2` v0.9.0 and the dagre layout engine:
+Measured intrinsic sizes with `d2` v0.9.0 and dagre. Height is the number
+that matters: at the 566px article measure every one of these renders at its
+intrinsic size, so the height column is also the rendered height.
 
-| Diagram | AR |
-|---|---|
-| `01-ai-pipeline` | 0.46 |
-| `02-delivery-pipeline` | 0.25 |
-| `03-file-lifecycle` | 0.42 |
-| `04-before-after` | 0.24 |
-| `05-cutover` | 0.46 |
-| `06-build-pipeline` | 0.34 |
+| Diagram | Intrinsic | Rendered height | Label size |
+|---|---|---|---|
+| `01-ai-pipeline` | 621x1346 | 1346 | 18.2px |
+| `02a-query-and-enrich` | 312x842 | 842 | 20px |
+| `02b-pack-and-deliver` | 375x640 | 640 | 20px |
+| `03-file-lifecycle` | 523x1236 | 1236 | 20px |
+| `04a-before-bespoke` | 355x640 | 640 | 20px |
+| `04b-after-shared` | 354x842 | 842 | 20px |
+| `05-cutover` | 477x1034 | 1034 | 20px |
+| `06-build-pipeline` | 358x1040 | 1040 | 20px |
 
 ## Known limitations
 
 Being honest about what is currently wrong:
 
-- **`02-delivery-pipeline` (0.25) and `04-before-after` (0.24) are very tall and
-  narrow.** At the article measure they rely on horizontal scroll. Both are
-  seven-node single-column chains, so the constraint is the node count, not the
-  layout direction. Splitting either into two diagrams is the fix if it ever
-  matters.
-- The old authoring target was AR 0.3 to 1.6. Two diagrams are below 0.3. The
-  target was written for Mermaid and the real output is what it is; do not treat
-  0.3 as a hard gate.
+- **Height is set by node count, not by layout direction.** This is the single
+  most important thing to know before touching a diagram's shape. Two
+  seven-node figures (`02-delivery-pipeline`, `04-before-after`) each rendered
+  1500px tall, and **no layout change fixed it**:
+  - `direction: right` produced a 2399px-wide ribbon — 4.7px labels at 87px
+    tall. Unreadable.
+  - D2 groups/containers are stacked *vertically* by dagre regardless of
+    direction, so grouping a figure into two named phases made it **taller**
+    (1686px), not shorter.
+
+  The only lever is fewer nodes per figure, so both were **split into two
+  figures each** at their natural boundary. `02` is now `02a` (query and
+  enrich) + `02b` (pack and deliver); `04` is now `04a` (the retired bespoke
+  path) + `04b` (the shared pipeline that replaces it). Each half is 3-4 stages
+  and under 850px. Do not merge them back into one figure.
+- **`01-ai-pipeline` is the widest figure (621px) and scrolls ~55px**
+  horizontally at the article measure. The `max-width: 820px` cap lets it
+  overflow rather than shrink its labels; see the CSS discussion above.
 - D2 emits an opaque background `<rect fill="#FFFFFF">` covering the whole
   canvas. Confirm it is not visible in dark mode before you consider this
   section closed.
