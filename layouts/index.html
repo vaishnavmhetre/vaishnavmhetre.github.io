@@ -1,17 +1,47 @@
 {{ define "main" }}
-{{- /* Dark burnt-orange story — plus a warm-ivory light theme via
-       html[data-theme="light"] — recreation of the Dribbble reference for
-       Vaishnav Mhetre's real content. Left-aligned hero with profile card,
-       light/dark stat duo, dual CTA, CSS marquee, then Work / Experience /
-       Skills / About / Contact. Slice 01 removed the inline topbar/footer —
-       global .vm-topbar/.vm-footer now come from the header/footer partials
-       (ADR 0008); S4 rewrites this page fully. All styling and motion live
-       in assets/css/extended/custom.css (DESIGN-DNA block). */ -}}
+{{- /* Slice 04 — trimmed landing page (contract D4 "homepage trim" + D7 "honest
+       CTA"). Structure is now exactly three beats: hero → proof strip (real
+       counts derived from Hugo data) → entry points. The Work / Experience /
+       Skills / About / Contact sections are gone; their copy now lives in
+       content/about.md and the case studies live in the /writing/ hub (S2).
+       Global chrome (.vm-topbar / .vm-footer) comes from the header/footer
+       partials (slice 01, ADR 0008) — no inline topbar or footer here.
+
+       No number in this file is literal: every count comes from Hugo data.
+       Entry counts: site.RegularPages filtered by Section. The one bio number
+       (years in platform engineering) is sourced from the /about front matter
+       so about.md stays the single source of truth for that claim.
+
+       Styles: hero/profile/ticker/section/stat-duo primitives live in
+       custom.css (DESIGN-DNA, frozen); the landing-specific rules are in
+       assets/css/extended/home.css (slice 04). */ -}}
+
+{{- $caseStudies := where site.RegularPages "Section" "case-studies" -}}
+{{- $posts := where site.RegularPages "Section" "posts" -}}
+{{- $writing := where site.RegularPages "Section" "in" (slice "case-studies" "posts") -}}
+{{- $caseCount := len $caseStudies -}}
+{{- $postCount := len $posts -}}
+{{- $writeCount := len $writing -}}
+{{- $caseNoun := cond (eq $caseCount 1) "case study" "case studies" -}}
+{{- $postNoun := cond (eq $postCount 1) "post" "posts" -}}
+{{- $years := 0 -}}
+{{- with site.GetPage "/about" -}}
+{{- with .Params.experienceYears -}}
+{{- $years = . -}}
+{{- end -}}
+{{- end -}}
+{{- /* Fail closed rather than publish a fabricated "0+ years": the years claim
+       is a bio fact with no Hugo data behind it, so its only honest home is the
+       /about front matter. Losing it must be loud, not a silently wrong stat. */ -}}
+{{- if not $years -}}
+{{- errorf "content/about.md: front matter `experienceYears` is required — the homepage proof strip reads it from there" -}}
+{{- end -}}
 <div class="vm-shell">
 
-    {{- /* HERO — eyebrow, H1 with serif-italic accent word, lede, pills,
-           light/dark stat duo, dual CTA · profile card right column ·
-           tech ticker pinned to the hero's bottom edge */ -}}
+    {{- /* HERO — eyebrow, H1 with the serif-italic accent word, lede, stack
+           pills, profile card, tech ticker pinned to the hero's bottom edge.
+           Dual CTA is now truthful (D7): into the writing archive, or the
+           real source on GitHub. No invented "start a project" offer. */ -}}
     <section class="vm-hero" aria-labelledby="vm-hero-title">
         <div class="vm-wrap vm-hero-grid">
             <div class="vm-hero-left">
@@ -22,9 +52,10 @@
                 </h1>
 
                 <p class="vm-lede">
-                    I'm Vaishnav Mhetre, a platform engineer with ~7 years designing event-driven
-                    systems, microservices, and binary data delivery for motor-insurance and
-                    market-data platforms — and writing down what the work actually taught me.
+                    I'm Vaishnav Mhetre, a platform engineer with ~{{ $years }} years designing
+                    event-driven systems, microservices, and binary data delivery for
+                    motor-insurance and market-data platforms — and writing down what the work
+                    actually taught me.
                 </p>
 
                 <ul class="vm-pills" aria-label="Core stack">
@@ -35,32 +66,19 @@
                     <li class="vm-pill">Kafka</li>
                 </ul>
 
-                {{- /* Stat duo: light card NEXT TO dark card — real facts only
-                       (~7 years from about.md; 3 case studies from content). */ -}}
-                <div class="vm-stats">
-                    <div class="vm-stat vm-stat--light">
-                        <span class="vm-stat-label">Years in platform engineering</span>
-                        <span class="vm-stat-num">7+</span>
-                    </div>
-                    <div class="vm-stat vm-stat--dark">
-                        <span class="vm-stat-label">Case studies published</span>
-                        <span class="vm-stat-num">3</span>
-                    </div>
-                </div>
-
                 <div class="vm-ctas">
-                    <a class="vm-btn vm-btn--solid" href="#contact">
-                        Start a project <span class="vm-arrow-circle" aria-hidden="true">↗</span>
+                    <a class="vm-btn vm-btn--solid" href="{{ "writing/" | relURL }}">
+                        Read my writing <span class="vm-arrow-circle" aria-hidden="true">→</span>
                     </a>
-                    <a class="vm-btn vm-btn--ghost" href="#work">
-                        View my work <span aria-hidden="true">↓</span>
+                    <a class="vm-btn vm-btn--ghost" href="https://github.com/vaishnavmhetre"
+                        rel="me noopener" target="_blank">
+                        View on GitHub <span aria-hidden="true">↗</span>
                     </a>
                 </div>
             </div>
 
             {{- /* Profile card: availability-style badge · 1:1 portrait photo ·
-                   role line · real socials · GitHub button standing in for
-                   "Download my resume" (no resume file). */ -}}
+                   role line · real socials · GitHub button (no resume file). */ -}}
             <aside class="vm-profile" aria-label="Profile">
                 <p class="vm-badge">
                     <span class="vm-badge-star" aria-hidden="true">★</span>
@@ -95,7 +113,7 @@
                     </li>
                 </ul>
 
-                <a class="vm-profile-cta" href="https://github.com/vaishnavmhetre" rel="noopener"
+                <a class="vm-profile-cta" href="https://github.com/vaishnavmhetre" rel="me noopener"
                     target="_blank">
                     View on GitHub <span aria-hidden="true">↗</span>
                 </a>
@@ -136,157 +154,101 @@
         </div>
     </section>
 
-    {{- /* WORK — the three real case studies via the case-study-card partial */ -}}
-    <section class="vm-section" id="work" aria-labelledby="vm-work-title">
+    {{- /* PROOF STRIP — the light/dark stat duo (DESIGN-DNA signature moment 2)
+           moved out of the hero and widened to the container. Every number is
+           derived: the entry counts from site.RegularPages, the years of
+           experience from the /about front matter. The sentence underneath
+           spells the counts out in words so the claim is readable, not just
+           numeral-shaped. */ -}}
+    <section class="vm-section vm-proof" aria-labelledby="vm-proof-title">
         <div class="vm-wrap">
             <div class="vm-section-head">
-                <p class="vm-eyebrow">✨ Selected work</p>
-                <h2 class="vm-section-title" id="vm-work-title">Case studies from the platforms.</h2>
+                <p class="vm-eyebrow">✨ Proof</p>
+                <h2 class="vm-section-title" id="vm-proof-title">What this site actually holds.</h2>
                 <hr class="vm-rule" aria-hidden="true">
             </div>
 
-            <ol class="vm-cases">
-                {{- $caseStudies := where site.RegularPages "Section" "case-studies" }}
-                {{- range first 3 $caseStudies.ByDate.Reverse }}
-                {{- partial "case-study-card.html" . }}
-                {{- end }}
-            </ol>
-        </div>
-    </section>
-
-    {{- /* EXPERIENCE — real employers and domains from about.md; no invented
-           titles or dates */ -}}
-    <section class="vm-section" id="experience" aria-labelledby="vm-exp-title">
-        <div class="vm-wrap">
-            <div class="vm-section-head">
-                <p class="vm-eyebrow">✨ Experience</p>
-                <h2 class="vm-section-title" id="vm-exp-title">Two domains, one common thread.</h2>
-                <hr class="vm-rule" aria-hidden="true">
-            </div>
-
-            <div class="vm-exp">
-                <article class="vm-exp-item">
-                    <p class="vm-exp-domain">Market data</p>
-                    <h3 class="vm-exp-org">NielsenIQ</h3>
-                    <p class="vm-exp-body">
-                        Work on binary data delivery at scale — querying retail measurement data
-                        out of databases and shipping it to downstream systems as binary payloads
-                        through the delivery pipeline's filters and enrichments. Contributed to the
-                        config-handling framework and file-handling service, supervised the
-                        migration of prediction services onto the delivery pipeline, and now work
-                        on AI-driven initiatives.
-                    </p>
-                </article>
-                <article class="vm-exp-item">
-                    <p class="vm-exp-domain">Motor insurance</p>
-                    <h3 class="vm-exp-org">Allianz Technology</h3>
-                    <p class="vm-exp-body">
-                        Worked on a motor-insurance platform at the intersection of Contract,
-                        Claims, and Document lifecycles. Led a five-person document team and
-                        drove the shift toward event-driven systems and microservices.
-                    </p>
-                </article>
-            </div>
-        </div>
-    </section>
-
-    {{- /* SKILLS — real stack only */ -}}
-    <section class="vm-section" id="skills" aria-labelledby="vm-skills-title">
-        <div class="vm-wrap">
-            <div class="vm-section-head">
-                <p class="vm-eyebrow">✨ Skills</p>
-                <h2 class="vm-section-title" id="vm-skills-title">The stack I actually use.</h2>
-                <hr class="vm-rule" aria-hidden="true">
-            </div>
-
-            <dl class="vm-skill-groups">
-                <div class="vm-skill-group">
-                    <dt>Languages</dt>
-                    <dd>
-                        <span class="vm-pill">Java</span>
-                        <span class="vm-pill">TypeScript</span>
-                        <span class="vm-pill">Node.js</span>
-                    </dd>
+            <div class="vm-stats vm-proof-stats">
+                <div class="vm-stat vm-stat--light">
+                    <span class="vm-stat-label">Years in platform engineering</span>
+                    <span class="vm-stat-num">{{ $years }}+</span>
                 </div>
-                <div class="vm-skill-group">
-                    <dt>Platform</dt>
-                    <dd>
-                        <span class="vm-pill">Spring Boot</span>
-                        <span class="vm-pill">Google Cloud Platform</span>
-                        <span class="vm-pill">Kafka</span>
-                        <span class="vm-pill">PostgreSQL</span>
-                    </dd>
+                <div class="vm-stat vm-stat--dark">
+                    <span class="vm-stat-label">Case studies and posts published</span>
+                    <span class="vm-stat-num">{{ $writeCount }}</span>
                 </div>
-                <div class="vm-skill-group">
-                    <dt>Focus</dt>
-                    <dd>
-                        <span class="vm-pill">data delivery</span>
-                        <span class="vm-pill">event-driven systems</span>
-                        <span class="vm-pill">microservices</span>
-                        <span class="vm-pill">cost optimization</span>
-                    </dd>
-                </div>
-            </dl>
+            </div>
+
+            <p class="vm-proof-note">
+                {{ $caseCount }} {{ $caseNoun }} and {{ $postCount }} {{ $postNoun }} so far,
+                each one written from a platform I actually worked on.
+            </p>
         </div>
     </section>
 
-    {{- /* ABOUT — real copy from content/about.md */ -}}
-    <section class="vm-section" id="about" aria-labelledby="vm-about-title">
+    {{- /* ENTRY POINTS — two front doors instead of five in-page sections.
+           Class names are slice-04 local (.vm-door*), deliberately NOT the
+           .vm-entry* namespace slice 02 owns for the archive cards, so the
+           two slices never collide. The card title carries a stretched link so
+           the whole card is a hit target while keyboard focus stays on one
+           element. */ -}}
+    <section class="vm-section vm-entries" aria-labelledby="vm-entries-title">
         <div class="vm-wrap">
             <div class="vm-section-head">
-                <p class="vm-eyebrow">✨ About</p>
-                <h2 class="vm-section-title" id="vm-about-title">The frame, not the painting.</h2>
-                <hr class="vm-rule" aria-hidden="true">
-            </div>
-
-            <div class="vm-about-copy">
-                <p>
-                    I am a platform engineer with approximately seven years of experience working
-                    primarily in <strong>Java</strong>, <strong>TypeScript</strong>, and
-                    <strong>Node.js</strong> on <strong>GCP</strong> with
-                    <strong>Spring Boot</strong>. Across both roles, the common thread is
-                    <strong>data delivery</strong> — taking data out of databases and getting it,
-                    reliably and at scale, into the form downstream consumers actually need:
-                    binary payloads today, documents earlier in my career.
-                </p>
-                <p>
-                    This portfolio is <strong>the frame</strong> — a curated narrative hub that
-                    points at
-                    <a class="vm-text-link" href="https://www.linkedin.com/in/vaishnav-mhetre/"
-                        rel="noopener" target="_blank">LinkedIn</a>
-                    (where recruiters find me) and
-                    <a class="vm-text-link" href="https://github.com/vaishnavmhetre" rel="noopener"
-                        target="_blank">GitHub</a>
-                    (where code lives). The frame, not the painting. Full notes live on the
-                    <a class="vm-text-link" href="{{ "about/" | relURL }}">about page</a>.
-                </p>
-            </div>
-        </div>
-    </section>
-
-    {{- /* CONTACT — no invented email; real GitHub + LinkedIn only */ -}}
-    <section class="vm-section" id="contact" aria-labelledby="vm-contact-title">
-        <div class="vm-wrap">
-            <div class="vm-section-head">
-                <p class="vm-eyebrow">✨ Contact</p>
-                <h2 class="vm-section-title" id="vm-contact-title">Start a project — or just say hi.</h2>
+                <p class="vm-eyebrow">✨ Start here</p>
+                <h2 class="vm-section-title" id="vm-entries-title">Two ways in.</h2>
                 <hr class="vm-rule" aria-hidden="true">
                 <p class="vm-section-lede">
-                    The best way to reach me is through GitHub or LinkedIn. Platform engineering,
-                    binary data delivery, event-driven design — if that's the work, let's talk.
+                    This site is small on purpose. Either read what I have written, or read how
+                    I got to the work — the archive is grouped by type, and the background is
+                    a single page.
                 </p>
             </div>
 
-            <div class="vm-contact-row">
-                <a class="vm-btn vm-btn--solid" href="https://github.com/vaishnavmhetre"
-                    rel="noopener" target="_blank">
-                    GitHub <span class="vm-arrow-circle" aria-hidden="true">↗</span>
-                </a>
-                <a class="vm-btn vm-btn--ghost" href="https://www.linkedin.com/in/vaishnav-mhetre/"
-                    rel="noopener" target="_blank">
-                    LinkedIn <span aria-hidden="true">↗</span>
-                </a>
-            </div>
+            <ul class="vm-doors">
+                <li class="vm-door">
+                    <p class="vm-door-eyebrow">The archive</p>
+                    <h3 class="vm-door-title">
+                        <a href="{{ "writing/" | relURL }}">Writing</a>
+                    </h3>
+                    <p class="vm-door-body">
+                        Case studies from the platforms I have worked on — the real problem, the
+                        trade-off, and what the migration cost. Grouped into case studies and
+                        posts so you can pick the shape of the thing you want to read.
+                    </p>
+                    <p class="vm-door-meta">
+                        {{ $caseCount }} {{ $caseNoun }} · {{ $postCount }} {{ $postNoun }}
+                    </p>
+                    <span class="vm-door-cta">
+                        Browse the archive <span aria-hidden="true">→</span>
+                    </span>
+                </li>
+
+                <li class="vm-door">
+                    <p class="vm-door-eyebrow">The background</p>
+                    <h3 class="vm-door-title">
+                        <a href="{{ "about/" | relURL }}">About</a>
+                    </h3>
+                    <p class="vm-door-body">
+                        Two domains — market data and motor insurance — and one common thread in
+                        data delivery. The experience, the stack I actually use, and why this
+                        site is a frame rather than a portfolio.
+                    </p>
+                    <p class="vm-door-meta">{{ $years }}+ years · Java · Spring Boot · GCP</p>
+                    <span class="vm-door-cta">
+                        Read the background <span aria-hidden="true">→</span>
+                    </span>
+                </li>
+            </ul>
+
+            <p class="vm-elsewhere">
+                Prefer the source? Code lives on
+                <a class="vm-text-link" href="https://github.com/vaishnavmhetre" rel="me noopener"
+                    target="_blank">GitHub</a>, history on
+                <a class="vm-text-link" href="https://www.linkedin.com/in/vaishnav-mhetre/"
+                    rel="me noopener" target="_blank">LinkedIn</a>. Those are the two honest ways
+                to reach me — I don't publish a contact email here.
+            </p>
         </div>
     </section>
 </div>
