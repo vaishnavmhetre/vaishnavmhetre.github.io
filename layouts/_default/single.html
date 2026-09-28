@@ -1,0 +1,90 @@
+{{- define "main" }}
+{{- /* Slice 03 - single reading surfaces. One template for BOTH
+   /case-studies/<slug>/ and /posts/<slug>/. PaperMod primitives kept:
+   post_meta, translation_list, edit_post, post_canonical, cover, toc,
+   anchored_headings, extend_post_content, share_icons, comments.
+   Styles: assets/css/extended/single.css */ -}}
+{{- $section := .Section }}
+{{- $sectionPage := .CurrentSection }}
+{{- $hub := site.GetPage "/writing" }}
+{{- $hubURL := "/writing/" | relURL }}
+{{- if $hub }}{{ $hubURL = $hub.RelPermalink }}{{ end }}
+{{- $kind := "" }}
+{{- if eq .Section "case-studies" }}{{ $kind = "Case Study" }}{{ end }}
+{{- if eq .Section "posts" }}{{ $kind = "Post" }}{{ end }}
+{{- $lede := .Description | default .Summary | plainify }}
+<article class="vm-article">
+    <header class="vm-article-head">
+        <nav class="vm-crumbs" aria-label="Breadcrumb">
+            <ol class="vm-crumbs-list">
+                <li class="vm-crumbs-item"><a class="vm-crumbs-link" href="{{ "" | relURL }}">Home</a></li>
+                <li class="vm-crumbs-item"><a class="vm-crumbs-link" href="{{ $hubURL }}">Writing</a></li>
+                {{- with $sectionPage }}
+                <li class="vm-crumbs-item"><a class="vm-crumbs-link" href="{{ .RelPermalink }}">{{ .Title }}</a></li>
+                {{- end }}
+            </ol>
+        </nav>
+        {{- with $kind }}
+        <p class="vm-eyebrow vm-article-kind">{{ . }}</p>
+        {{- end }}
+        <h1 class="vm-article-title">{{ .Title }}</h1>
+        {{- with $lede }}
+        <p class="vm-article-lede">{{ . }}</p>
+        {{- end }}
+        {{- if not (.Param "hideMeta") }}
+        <div class="vm-article-meta">
+            {{- partial "post_meta.html" . -}}
+            {{- partial "translation_list.html" . -}}
+            {{- partial "edit_post.html" . -}}
+            {{- partial "post_canonical.html" . -}}
+        </div>
+        {{- end }}
+        {{- $tags := .Language.Params.Taxonomies.tag | default "tags" }}
+        {{- with .GetTerms $tags }}
+        <ul class="vm-article-tags">
+            {{- range . }}
+            <li><a class="vm-pill" href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>
+            {{- end }}
+        </ul>
+        {{- end }}
+    </header>
+    {{- $isHidden := (.Param "cover.hiddenInSingle") | default (.Param "cover.hidden") | default false }}
+    {{- partial "cover.html" (dict "cxt" . "IsSingle" true "isHidden" $isHidden) }}
+    {{- if (.Param "ShowToc") }}
+    {{- partial "toc.html" . }}
+    {{- end }}
+    {{- if .Content }}
+    <div class="post-content md-content vm-article-body">
+        {{- if not (.Param "disableAnchoredHeadings") }}
+        {{- partial "anchored_headings.html" .Content -}}
+        {{- else }}{{ .Content }}{{ end }}
+    </div>
+    {{- end }}
+    {{- partial "extend_post_content.html" . }}
+    {{- $siblings := (where site.RegularPages "Section" $section).ByDate.Reverse }}
+    {{- if and (gt (len $siblings) 1) (in $siblings .) }}
+    <footer class="vm-article-foot">
+        <nav class="vm-pagenav" aria-label="More in this section">
+            {{- with $siblings.Next . }}
+            <a class="vm-pagenav-link vm-pagenav-link--prev" href="{{ .RelPermalink }}">
+                <span class="vm-pagenav-label">Previous</span>
+                <span class="vm-pagenav-title">{{ .Title }}</span>
+            </a>
+            {{- end }}
+            {{- with $siblings.Prev . }}
+            <a class="vm-pagenav-link vm-pagenav-link--next" href="{{ .RelPermalink }}">
+                <span class="vm-pagenav-label">Next</span>
+                <span class="vm-pagenav-title">{{ .Title }}</span>
+            </a>
+            {{- end }}
+        </nav>
+    </footer>
+    {{- end }}
+    {{- if and site.Params.ShowShareButtons (ne .Params.disableShare true) }}
+    {{- partial "share_icons.html" . -}}
+    {{- end }}
+    {{- if (.Param "comments") }}
+    {{- partial "comments.html" . }}
+    {{- end }}
+</article>
+{{- end }}
