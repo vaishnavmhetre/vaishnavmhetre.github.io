@@ -338,23 +338,10 @@ summary:focus-visible {
     border-radius: var(--vm-radius-img);
 }
 
-/* Home shell replaces PaperMod chrome (header/footer) — hugo.yaml menu
-   stays untouched; only the home page opts out, via :has(). */
-body:has(.vm-shell)>.header,
-body:has(.vm-shell) .header {
-    display: none;
-}
-
-body:has(.vm-shell) .footer {
-    display: none;
-}
-
-body:has(.vm-shell) main.main,
-body:has(.vm-shell) #content {
-    max-width: none;
-    margin: 0;
-    padding: 0;
-}
+/* Slice 01 (ADR 0008): the `body:has(.vm-shell)` header/footer/main
+   suppression block that lived here is gone — chrome is now owned by
+   layouts/partials/{header,footer}.html site-wide. The home-shell
+   full-bleed main reset it carried moved to assets/css/extended/chrome.css. */
 
 /* ============================================================
    CONTAINER

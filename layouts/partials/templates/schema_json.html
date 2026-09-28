@@ -1,0 +1,160 @@
+{{- /* JSON-LD — slice 01 (SEO contract D6). Emits one `application/ld+json`
+       block per page as a single @graph, so the Person node is declared once
+       on the home page and referenced by @id from the article nodes:
+
+         home                → Person + WebSite
+         /posts/<slug>/      → BlogPosting
+         /case-studies/<x>/  → Article
+         everything else     → BreadcrumbList
+         BreadcrumbList      → every non-home page
+
+       Replaces PaperMod's Organization + always-BlogPosting output. The
+       publisher is a Person (this is a personal portfolio, not a company),
+       and case studies are Articles rather than posts.
+
+       Built from `dict`/`jsonify` rather than hand-concatenated JSON: the
+       graph is guaranteed to be well-formed and Hugo escapes HTML-significant
+       characters, so a stray `</` in page content cannot break out of the
+       script block. */ -}}
+
+{{- /* Per-page description: same chain as head.html / opengraph.html. */ -}}
+{{- $desc := .Description | default (.Summary | default "") | plainify | htmlUnescape | replaceRE `\s+` " " -}}
+{{- $desc = trim $desc " " | truncate 160 -}}
+{{- if not $desc -}}
+{{- if .IsHome -}}
+{{- $desc = site.Params.description | plainify | truncate 160 -}}
+{{- else -}}
+{{- $desc = printf "%s. %s" (.Title | plainify) site.Params.description | plainify | truncate 160 -}}
+{{- end -}}
+{{- end -}}
+
+{{- $lang := site.Language.Locale | default site.Language.Lang -}}
+{{- $personID := printf "%s#person" site.Home.Permalink -}}
+{{- $siteID := printf "%s#website" site.Home.Permalink -}}
+
+{{- /* og:image resolution, mirroring templates/opengraph.html: page cover →
+       first in-content image → the site-wide 1200×630 cover. */ -}}
+{{- $ogImage := "images/og-cover.png" | absURL -}}
+{{- if .Params.cover.image -}}
+{{- if ne $.Params.cover.relative true -}}
+{{- $ogImage = .Params.cover.image | absURL -}}
+{{- else -}}
+{{- $ogImage = (path.Join .RelPermalink .Params.cover.image) | absURL -}}
+{{- end -}}
+{{- else -}}
+{{- with index (partial "templates/_funcs/get-page-images" .) 0 -}}
+{{- $ogImage = .Permalink -}}
+{{- end -}}
+{{- end -}}
+
+{{- $graph := slice -}}
+
+{{- /* ---- Home: the person behind the site + the site itself ---------- */ -}}
+{{- if .IsHome -}}
+{{- $sameAs := slice -}}
+{{- range site.Params.socialIcons -}}
+{{- with .url -}}{{- $sameAs = $sameAs | append . -}}{{- end -}}
+{{- end -}}
+{{- $graph = $graph | append (dict
+      "@type" "Person"
+      "@id" $personID
+      "name" site.Title
+      "url" site.Home.Permalink
+      "description" (site.Params.description | plainify)
+      "image" $ogImage
+      "inLanguage" $lang
+      "sameAs" $sameAs) -}}
+{{- $graph = $graph | append (dict
+      "@type" "WebSite"
+      "@id" $siteID
+      "url" site.Home.Permalink
+      "name" site.Title
+      "description" (site.Params.description | plainify)
+      "inLanguage" $lang
+      "publisher" (dict "@id" $personID)
+      "author" (dict "@id" $personID)) -}}
+{{- end -}}
+
+{{- /* ---- Long-form content: BlogPosting for posts, Article for
+        case studies. `articleBody` is deliberately omitted: the rendered
+        text is already in the page, and inlining it doubled page weight
+        for no structured-data gain. */ -}}
+{{- if and .IsPage (in (slice "posts" "case-studies") .Section) -}}
+{{- $type := cond (eq .Section "posts") "BlogPosting" "Article" -}}
+{{- $keywords := slice -}}
+{{- with .Params.keywords -}}
+{{- $keywords = . -}}
+{{- else -}}
+{{- with .Params.tags -}}{{- $keywords = . -}}{{- end -}}
+{{- end -}}
+{{- $node := dict
+      "@type" $type
+      "@id" (printf "%s#%s" .Permalink $type)
+      "headline" (.Title | plainify)
+      "description" $desc
+      "url" .Permalink
+      "mainEntityOfPage" (dict "@type" "WebPage" "@id" .Permalink)
+      "image" $ogImage
+      "inLanguage" $lang
+      "wordCount" .WordCount
+      "articleSection" .Section
+      "keywords" $keywords
+      "author" (dict "@id" $personID)
+      "publisher" (dict "@id" $personID) -}}
+{{- with .PublishDate -}}
+{{- $node = merge $node (dict "datePublished" (. | time.Format "2006-01-02")) -}}
+{{- end -}}
+{{- with .Lastmod -}}
+{{- $node = merge $node (dict "dateModified" (. | time.Format "2006-01-02")) -}}
+{{- end -}}
+{{- $graph = $graph | append $node -}}
+{{- end -}}
+
+{{- /* ---- BreadcrumbList on every non-home page, root → self. Built from
+        .Ancestors (root-first, self excluded) plus the page itself, so it
+        works for sections, taxonomies and term pages as well as singles,
+        and yields an empty list on the 404 page rather than walking a nil
+        .Parent. */ -}}
+{{- if not .IsHome -}}
+{{- $anc := slice -}}
+{{- with .Ancestors -}}
+{{- range . -}}
+{{- $anc = $anc | append (dict
+      "name" (.LinkTitle | default .Title | plainify)
+      "url" .Permalink) -}}
+{{- end -}}
+{{- end -}}
+{{- $self := dict
+      "name" (.LinkTitle | default .Title | plainify)
+      "url" .Permalink -}}
+{{- /* .Ancestors is closest-first (immediate parent → … → home), so index it
+       backwards to get root → self, then append self as the last crumb. */ -}}
+{{- $items := slice -}}
+{{- range seq (len $anc) -}}
+{{- $crumb := index $anc (sub (len $anc) .) -}}
+{{- $items = $items | append (dict
+      "@type" "ListItem"
+      "position" .
+      "name" $crumb.name
+      "item" $crumb.url) -}}
+{{- end -}}
+{{- $items = $items | append (dict
+      "@type" "ListItem"
+      "position" (add (len $anc) 1)
+      "name" $self.name
+      "item" $self.url) -}}
+{{- with $items -}}
+{{- $graph = $graph | append (dict
+      "@type" "BreadcrumbList"
+      "@id" (printf "%s#breadcrumb" $.Permalink)
+      "itemListElement" .) -}}
+{{- end -}}
+{{- end -}}
+
+{{- with $graph }}
+{{- /* safeJS: jsonify returns a string, which html/template would otherwise
+       re-escape for the script context, yielding \\"-quoted invalid JSON.
+       Safe because jsonify HTML-escapes `<`, `>` and `&`, so no value in
+       the graph can terminate the script element. */ -}}
+<script type="application/ld+json">{{ (dict "@context" "https://schema.org" "@graph" .) | jsonify (dict "indent" "") | safeJS }}</script>
+{{- end -}}

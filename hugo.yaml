@@ -1,5 +1,5 @@
 baseURL: "https://vaishnavmhetre.github.io/"
-languageCode: "en-us"
+locale: en-US
 title: "Vaishnav Mhetre"
 theme: ["github.com/adityatelange/hugo-PaperMod"]
 enableRobotsTXT: true
@@ -45,22 +45,18 @@ params:
     hiddenInSingle: true
 menu:
   main:
+    - identifier: writing
+      name: Writing
+      url: /writing/
+      weight: 10
     - identifier: about
       name: About
       url: /about/
-      weight: 10
-    - identifier: case-studies
-      name: Case Studies
-      url: /case-studies/
       weight: 20
-    - identifier: posts
-      name: Blog
-      url: /posts/
-      weight: 30
     - identifier: tags
       name: Tags
       url: /tags/
-      weight: 40
+      weight: 30
 markup:
   highlight:
     noClasses: false
