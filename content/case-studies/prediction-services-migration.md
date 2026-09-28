@@ -4,31 +4,111 @@ date: 2026-09-24
 draft: false
 tags: [data-delivery, platform]
 summary: "A case study about supervising the migration of prediction services — such as a pricing forecast backend — onto a shared delivery pipeline, and making them robust."
+hero: true
+showtoc: true
+diagrams: true
 ---
 
 ## The frame
 
-Prediction services — such as a pricing forecast backend — need data to make predictions, and they need it on a schedule and shape they can rely on. Over time, a service can drift: it builds its own bespoke data path, its own retrieval logic, its own error handling. Each service doing this separately means each one is maintained separately, and each one fails separately.
+Prediction services — such as a pricing forecast backend — need data to make predictions, and they need it on a schedule and shape they can rely on. Over time a service can drift: it builds its own data path, its own retrieval logic, its own error handling. Each service doing this separately means each is maintained separately, and each fails separately.
 
-The frame for the work was consolidation. Prediction services should not each reinvent how they get data. They should sit on the shared delivery pipeline, the same one that serves every other consumer, and inherit its guarantees instead of re-implementing them.
+The frame for the work was consolidation. Prediction services should not each reinvent how they get data. They should sit on the shared delivery pipeline, inherit its guarantees, and spend their effort on the prediction itself.
 
-## The approach
+{{< mermaid caption="Before: every service owns a path. After: the pipeline owns the path." >}}
+flowchart TB
+  subgraph before["Before — bespoke per service"]
+    S1["@client Forecast service"] --> Q1["@work Own query"]
+    Q1 --> R1[Own retry handling]
+    R1 --> X1[("@db Direct database reads")]
+  end
+  subgraph after["After — shared pipeline"]
+    S2["@client Forecast service"] --> C["@doc Delivery subscription"]
+    C --> P["@work Shared pipeline"]
+    P --> O[("@store Object storage")]
+    O --> S2
+  end
+  X1 -.->|migrated to| C
+{{< /mermaid >}}
 
-I helped supervise the migration of prediction services — with the pricing forecast backend as a prominent example — onto the delivery pipeline. The migration was not a lift-and-shift. Each service needed:
+## The data contract first
 
-* **A defined data contract.** What the service receives, in what shape, on what schedule — made explicit rather than incidental.
-* **Pipeline-native intake.** Replacing bespoke retrieval with the pipeline's filters, enrichments, and file handling, so the service consumes the same well-formed payloads as everyone else.
-* **Robustness work.** The migration was the moment to make the services robust — handling partial data, retrying deterministically, failing loudly when inputs are missing, and recovering without operator intervention.
+Before moving anything, the first piece of work was writing down what the service actually needs. Not what it currently reads, but what it needs — because those are usually different, and the difference is where the migration goes wrong.
 
-## Tradeoffs
+The contract is explicit about shape, schedule, and completeness:
 
-Consolidating onto the pipeline has genuine costs:
+```json {title="forecast-input-contract.json"}
+{
+  "contract": "forecast.input.v2",
+  "consumer": "pricing-forecast",
+  "schedule": { "cadence": "daily", "readyBy": "04:30Z" },
+  "inputs": {
+    "historyWindow": { "weeks": 104, "grain": "store-product-week" },
+    "features": ["priceIndex", "promotionFlag", "seasonalityIndex"],
+    "keys": ["storeId", "productCode", "weekIndex"]
+  },
+  "completeness": {
+    "requireFullWindow": true,
+    "onIncomplete": "fail"
+  }
+}
+```
 
-* **Standardization versus specialization.** The pipeline serves many consumers, so its contract is general. A service with truly unusual needs may find the standard path constraining.
-* **Migration risk versus status quo risk.** Moving a working service onto a new data path carries immediate risk — even when the long-term benefit is clear. Sequencing and rollback matter.
-* **Shared guarantees versus shared incidents.** Inheriting the pipeline's reliability also means inheriting its incidents. Services need to be robust to pipeline behavior, not just to their own.
-* **One-time cost versus recurring cost.** The migration is a concentrated effort; the payoff is recurring — no separate data path to maintain, no bespoke handling to debug.
+The `onIncomplete: fail` line is the one that changes behaviour most. The bespoke path had no such notion; a short read simply produced a forecast computed over fewer weeks, and nothing distinguished that from a normal run. Making the failure explicit is what allows the pipeline to retry rather than to let a degraded forecast reach a downstream decision.
 
-## Outcome and learnings
+## Pipeline-native intake
 
-The result was a set of prediction services sitting on one shared, robust delivery path — simpler to operate, and no longer owning bespoke data plumbing. The main learning was that a migration is a reliable way to force robustness work that would otherwise stay perpetually "next quarter". When a service moves onto the pipeline, it is the right moment to make its failure modes explicit and its recovery deterministic.
+Replacing bespoke retrieval meant deleting the service's own query and error handling, which is a larger change than it sounds — the bespoke path usually also carried retry, backoff, and logging that looked load-bearing but was only compensating for the shape of the data it received.
+
+The subscription itself is small, because the pipeline is doing the work:
+
+```go {title="forecast-subscription.go"}{linenos=false}
+func (c *ForecastConsumer) Deliver(env Envelope) error {
+    if !env.Complete {
+        // Explicitly refuse rather than forecast over a short window.
+        return ErrIncompleteWindow
+    }
+    rows, err := c.reader.Load(env.ContentURI, env.Schema)
+    if err != nil {
+        return fmt.Errorf("load %s: %w", env.DeliveryID, err)
+    }
+    return c.model.Refit(rows)
+}
+```
+
+The contrast with the previous version is the point. There is no query, no connection handling, no retry loop, no partial-read tolerance. What remains is the part that is genuinely the service's responsibility.
+
+## Cutover and rollback
+
+The migration was not a lift-and-shift. Each service moved through explicit states, and the rollback path was designed before the cutover rather than after.
+
+{{< mermaid caption="Shadow first, and rollback stays a flag until the fallback window closes." >}}
+stateDiagram-v2
+  [*] --> Bespoke
+  Bespoke --> Shadowed: run both, compare
+  Shadowed --> DualRead: pipeline wins
+  DualRead --> PipelineOnly: window closes
+  PipelineOnly --> [*]
+  Shadowed --> Bespoke: outputs disagree
+  DualRead --> Bespoke: pipeline incident
+{{< /mermaid >}}
+
+Two decisions in that sequence are the ones I would keep:
+
+**Shadow before cutover.** Running both paths and comparing outputs answers the question that actually matters — does the consolidated data produce the same prediction — before anything depends on the answer. It also surfaces the cases where the bespoke path was quietly doing something undocumented.
+
+**Rollback as a flag, not a redeploy.** Keeping the bespoke path alive through a defined window means recovery is a configuration change. Recovering by redeploying the old code under incident pressure is how a migration becomes an outage.
+
+## Failure modes
+
+- **A service that depended on an undocumented behaviour of its own path.** The most common finding during shadowing. Sometimes it is a filter nobody wrote down; sometimes it is an ordering the model happened to be trained on. Both need to become explicit in the contract, or the service will not survive its own migration.
+- **A schema change that is backwards-compatible for a producer but not a consumer.** The pipeline can add a field safely; a consumer that maps by position cannot. The contract's `keys` list is what makes this checkable.
+- **A service whose retrain window outlives the fallback.** If a model is retrained from pipeline data, the bespoke path can no longer reproduce the previous model, and the rollback is no longer equivalent. The fallback window has to be at least as long as the reproducibility window.
+
+## What consolidation cost
+
+Being direct about this, because consolidation is not free.
+
+The service teams lost the ability to change their retrieval logic without coordinating with the pipeline. A filter that used to be a one-line change became a pipeline configuration change with a review. That is a real reduction in autonomy, and for a service with genuinely unusual retrieval needs it can be the wrong trade.
+
+What they gained was the removal of a whole class of problem: nobody on the service team was maintaining a query, a retry policy, and a partial-read tolerance any more. The work that remains is the prediction, and the pipeline's guarantees are now something they consume rather than something they defend.

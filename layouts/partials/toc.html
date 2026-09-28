@@ -1,0 +1,36 @@
+{{- /* TOC — local override of PaperMod's partials/toc.html (slice: article
+   features). Three reasons this is overridden rather than styled around:
+
+   1. hugo.yaml sets UseHugoToc: true, so the content is Hugo's native
+      .TableOfContents. The theme's fallback branch — ~65 lines of hand-rolled
+      <ul> balancing via .Scratch (theme toc.html lines 25-91) — is dead code
+      here. Reimplementing keeps only the branch that actually runs.
+   2. The disclosure arrow was the UA's default list-item marker, an unstyled
+      system triangle that cannot be positioned or themed. It is replaced with
+      an inline SVG that rotates on [open] and sits on the trailing edge, which
+      is where a disclosure control is conventionally read.
+   3. Icon is Lucide's `chevron-down` (ISC License, lucide.dev), inlined as
+      markup rather than pulled from a CDN or an icon font: this site ships no
+      webfont and makes no third-party requests, and inlining keeps the stroke
+      on currentColor so it themes for free.
+
+   The SVG is aria-hidden because <summary> already announces expanded/collapsed;
+   a second graphic would be noise for a screen reader. Keyboard behaviour is
+   the native one — Enter/Space on a focused <summary> — untouched here. */ -}}
+{{- $hasHeaders := ge (len (findRE "<h[1-6].*?>(.|\n])+?</h[1-6]>" .Content)) 1 -}}
+{{- if $hasHeaders -}}
+{{- $label := i18n "toc" | default "Table of Contents" -}}
+<details class="toc"{{ if .Param "TocOpen" }} open{{ end }}>
+    <summary accesskey="c" title="(Alt + C)">
+        <span class="vm-toc-label">{{ $label }}</span>
+        <svg class="vm-toc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true" focusable="false">
+            <path d="m6 9 6 6 6-6"/>
+        </svg>
+    </summary>
+    <div class="inner">
+        {{- .TableOfContents -}}
+    </div>
+</details>
+{{- end -}}

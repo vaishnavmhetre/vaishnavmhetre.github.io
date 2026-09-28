@@ -1,0 +1,166 @@
+{{- /* HERO ARTWORK — a per-article identity band, generated not authored.
+   Rendered by layouts/partials/hero.html through resources.ExecuteAsTemplate
+   and inlined into <div class="vm-article-hero"> by layouts/_default/single.html
+   (gated on front-matter `hero: true`). Styles: assets/css/extended/single.css.
+
+   WHY A GENERATED BAND AND NOT A COMMITTED IMAGE. Decision D-2 of
+   .omo/plans/article-hero-rewrite.md rejected both static per-article cover
+   photos (4 committed binaries, one per article) and an offline SVG->PNG
+   rasterizer (a tool dependency that CI cannot verify hermetically). A template
+   is the third option: the art ships as ~100 lines of geometry, adds zero bytes
+   of binary to a PUBLIC repo, and is editable as source rather than as an
+   export. The corollary cost — which D-2 also records — is that it cannot
+   serve as `og:image`; social scrapers want a raster, so pages keep the
+   site-wide /images/og-cover.png fallback and per-article OG stays a named
+   follow-up, not an accident.
+
+   WHY IT IS THEME-ADAPTIVE RATHER THAN PRE-COLORED. The site has one palette,
+   declared once as 136 `--vm-*` tokens in assets/css/extended/custom.css, and
+   the theme toggle flips a documented subset of them under
+   html[data-theme="light"] (custom.css:149-227). A committed bitmap or a
+   hardcoded hex would freeze the art at build time and go wrong the moment a
+   token is retuned. So this file emits NO COLOR LITERALS AT ALL — every fill
+   and stroke is either `currentColor` (which resolves to the article text
+   color, and therefore flips for free) or a `var(--vm-*)` reference. Only
+   tokens that the light block actually redefines are used, so both themes get
+   real contrast rather than the near-invisible case of pairing a dark-theme
+   peach with an ivory page:
+     currentColor        -> article ink, adapts
+     --vm-peach-italic  -> #FFD8A8 dark / #B04C0C light
+     --vm-line-soft      -> cream line dark / espresso line light
+     --vm-line-hair      -> same, fainter
+     --vm-muted-70       -> cream-muted dark / brown-muted light
+   Raw palette entries (--vm-espresso, --vm-orange-top, ...) are deliberately
+   avoided: they do NOT flip, so on the ivory page they would be near-black
+   geometry at full strength.
+
+   SEED -> GEOMETRY. The seed is a stable integer derived in hero.html
+   (front-matter `seed:` if present, else FNV32a of the page's file path).
+   Below, the page TITLE and the TAG LIST are hashed in alongside it, so
+   renaming an article or retagging it changes its art. Everything is folded
+   into one bounded integer $n in 0..9972 (a prime modulus; the `math.Abs`
+   guards make a negative front-matter seed safe, since Go's % keeps the sign
+   of the dividend and would otherwise yield a negative modulus result). From
+   that single number, eleven independent variables are read off disjoint
+   slices of $n — dividing by an increasing coprime-ish step before each mod
+   is what decorrelates them, so moving one knob does not shift all of them:
+     arcCount  3..5     how many concentric arcs
+     bandCount 2..3     how many skewed bands
+     bandSkew  14..39   the bands' horizontal shear, i.e. the "band angles"
+     hubX      380..819 where the arc family converges
+     arcR0     88..133  innermost radius
+     arcStep   24..42   radius delta between arcs
+     arcFlat   30/42/55  ry/rx percent, which is what actually reads as the
+                         "angle" of each band
+     arcDrift  6..26    horizontal drift per arc, breaking left-right symmetry
+     dots      5..9     dot-lattice columns
+     dotDX/DY  0..25/13 the lattice phase offset
+     tickGap   10..18   spacing of the one-per-tag accent ticks
+     ruleLen   46..141  length of the solid accent segment on the top rule
+   Bounded on purpose: the result is a BAND (1200x240, ~5:1), not a full-bleed
+   image. It sits under the title and above the TOC, so it must not fight the
+   lede and the heading rhythm for attention. A tall image would push the
+   article's own first words below the fold, which is the exact problem the
+   dormant cover.html seam already leaves unsolved.
+
+   ACCESSIBILITY. aria-hidden="true" because the art is decorative and the
+   strings it is derived from are already announced as real HTML immediately
+   above it: single.html renders the title in <h1 class="vm-article-title">
+   and the tags in <ul class="vm-article-tags>. Re-announcing the same title
+   inside a <title> element here would be a duplicate, and a decorative band
+   is precisely the case aria-hidden exists for. That is also why this file
+   draws NO VISIBLE TEXT: text in a 240-unit-tall band would either need a
+   hardcoded font (the site ships no webfont and no @font-face) or overflow
+   the band for a long title. No text means no font stack to get wrong and no
+   way for a long title to break the layout. focusable="false" stops IE/Edge
+   legacy from putting the SVG in the tab order.
+
+   ESCAPING. .Title and .Tags are only ever consumed as NUMBERS here (len,
+   hash, seed arithmetic) — never echoed into the markup — so there is
+   nothing to escape. hero.html still normalizes the front-matter seed to an
+   int before handing it over, and this file is parsed as a plain-text
+   template (Hugo has no escaper context for a .svg target), so it applies no
+   contextual escaping of its own; relying on that is safe only because no
+   author-controlled string ever reaches an output position. If visible text
+   is ever added here, it must go through `| htmlEscape | safeHTML` exactly
+   as layouts/shortcodes/mermaid.html does, and only into text content — not
+   into an attribute, because Hugo's htmlEscape leaves `"` alone. */ -}}
+{{- /* --- Fold every input into one bounded integer ------------------- */ -}}
+{{- $tHash := int (mod (math.Abs (float (hash.FNV32a (delimit (sort .Tags) "|")))) 9973) -}}
+{{- $pHash := int (mod (math.Abs (float .Seed)) 9973) -}}
+{{- $n := mod (add $pHash $tHash) 9973 -}}
+{{- $arcCount := add 3 (mod $n 3) -}}
+{{- $bandCount := add 2 (mod (div $n 3) 2) -}}
+{{- $bandSkew := add 14 (mod (div $n 6) 26) -}}
+{{- $hubX := add 380 (mod (div $n 11) 440) -}}
+{{- $arcR0 := add 88 (mod (div $n 17) 46) -}}
+{{- $arcStep := add 24 (mod (div $n 19) 19) -}}
+{{- $arcFlat := slice 30 42 55 -}}
+{{- $arcDrift := add 6 (mod (div $n 43) 21) -}}
+{{- $dots := add 5 (mod (div $n 29) 5) -}}
+{{- $dotDX := mod (div $n 31) 26 -}}
+{{- $dotDY := mod (div $n 37) 14 -}}
+{{- $tickGap := add 10 (mod (div $n 41) 9) -}}
+{{- $ruleLen := add 46 (mod (div $n 47) 96) -}}
+{{- $ticks := len .Tags -}}
+{{- if gt $ticks 5 }}{{ $ticks = 5 }}{{ end -}}
+{{- /* Arc family centre sits just BELOW the band so only the upper half of
+       each arc sweeps through it; ry/rx is what reads as a band angle. */ -}}
+{{- $cy := 268 -}}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 240" preserveAspectRatio="xMidYMid meet" role="presentation" aria-hidden="true" focusable="false">
+  <g fill="none" stroke-linecap="butt">
+    {{- /* Layer 1 — the two hairlines that frame the band. */}}
+    <path d="M0 40H1200" stroke="var(--vm-line-soft)" stroke-width="1"/>
+    <path d="M0 200H1200" stroke="var(--vm-line-soft)" stroke-width="1"/>
+    <path d="M0 40H{{ $ruleLen }}" stroke="var(--vm-peach-italic)" stroke-width="2"/>
+  </g>
+  <g>
+    {{- /* Layer 2 — skewed bands. Sheared rectangles crossing the whole
+           band; fill-opacity carries the weight so no rgba() is needed. */}}
+    {{- range $i := seq 0 (sub $bandCount 1) }}
+    {{- $bx := sub (add 40 (mul $i 236)) (mod (div $n 53) 60) }}
+    {{- $by := mul (sub $i 1) 34 }}
+    {{- $sk := add $bandSkew (mul $i 7) }}
+    <path d="M{{ $bx }} {{ add 268 $by }}L{{ add 150 $bx }} {{ sub 28 $by }}L{{ add (add 150 $bx) $sk }} {{ sub 28 $by }}L{{ add $sk $bx }} {{ add 268 $by }}Z" fill="var(--vm-line-hair)" fill-opacity="{{ printf "%.2f" (sub 0.9 (mul 0.22 $i)) }}"/>
+    {{- end }}
+  </g>
+  <g fill="none">
+    {{- /* Layer 3 — the arc family. Half-ellipses: varying ry against a
+           fixed rx is what produces the differing "band angles", and no
+           trigonometry is needed to place the endpoints. */}}
+    {{- range $i := seq 0 (sub $arcCount 1) }}
+    {{- $r := add $arcR0 (mul $i $arcStep) }}
+    {{- $ry := printf "%.2f" (div (mul (float $r) (float (index $arcFlat (mod (add (div $n 3) $i) 3)))) 100.0) }}
+    {{- $cx := add $hubX (mul $i $arcDrift) }}
+    {{- $yb := sub (mod (div $n (add 59 $i)) 37) 18 }}
+    {{- $y := sub $cy $yb }}
+    {{- $w := printf "%.2f" (cond (eq (mod $i 2) 0) 2.0 1.3) }}
+    {{- $op := printf "%.2f" (sub 0.92 (mul 0.16 $i)) }}
+    <path d="M{{ sub $cx $r }} {{ $y }}A{{ $r }} {{ $ry }} 0 0 1 {{ add $cx $r }} {{ $y }}" stroke="{{ cond (eq (mod $i 2) 0) "var(--vm-peach-italic)" "currentColor" }}" stroke-width="{{ $w }}" stroke-opacity="{{ $op }}"/>
+    {{- end }}
+  </g>
+  <g fill="var(--vm-muted-70)">
+    {{- /* Layer 4 — the dot lattice, phase-shifted by the seed. Guarded to
+           y <= 186 so the grid never crosses the bottom rule and the band
+           stays a band. */}}
+    {{- $row := 0 }}
+    {{- range seq 0 4 }}
+    {{- $cy2 := add 70 (add (mul $row 26) $dotDY) }}
+    {{- if le $cy2 186 }}
+    {{- $col := 0 }}
+    {{- range seq 0 (sub $dots 1) }}
+    <circle cx="{{ add 44 (add (mul $col 26) $dotDX) }}" cy="{{ $cy2 }}" r="{{ cond (eq (mod (add $row $col) 3) 0) 3.5 2 }}"/>
+    {{- $col = add $col 1 }}
+    {{- end }}
+    {{- end }}
+    {{- $row = add $row 1 }}
+    {{- end }}
+  </g>
+  <g stroke="var(--vm-peach-italic)" stroke-width="3" fill="none">
+    {{- /* Layer 5 — one accent tick per tag, capped at five so a heavily
+           tagged article cannot grow an unbounded stack of marks. */}}
+    {{- range $i := seq 0 (sub $ticks 1) }}
+    <path d="M{{ sub 1152 (mul $i $tickGap) }} 152V186"/>
+    {{- end }}
+  </g>
+</svg>

@@ -1,0 +1,75 @@
+{{- /* HERO SEAM — renders the per-article identity band described in
+   assets/svg/hero.svg and RETURNS IT AS A STRING. The caller
+   (layouts/_default/single.html) supplies the <div class="vm-article-hero">
+   wrapper and the `hero: true` gate; this file is only the render. Styles:
+   assets/css/extended/single.css. Plan: .omo/plans/article-hero-rewrite.md D-2.
+
+   SEED DERIVATION. `seed:` in front matter wins, so an author can pin a piece
+   of art deliberately; otherwise the seed is FNV32a of the page's FILE path
+   (`.File.Path`, e.g. "posts/welcome-zero-cost-static-site.md") rather than
+   of `.RelPermalink`. The file path is used because it is the one stable
+   identifier on the page: it does not move when baseURL, the language prefix
+   or a trailing-slash policy changes, so retitling or relinking an article
+   does not silently redraw its hero, and a rebuild on a fresh clone reproduces
+   byte-identical art. `.File` is nil for generated pages, so the RelPermalink
+   hash is the fallback rather than a bare `.File.Path` dereference.
+
+   math.Abs guards the front-matter path: Hugo's mod keeps the sign of its
+   dividend, so a negative or absent-ish seed would otherwise produce negative
+   geometry offsets. `int` also normalizes a YAML value that arrived as a
+   float64, which Hugo's arithmetic would otherwise reject on mod.
+
+   TARGET PATH MUST BE UNIQUE PER PAGE — the hard-won lesson here. Hugo caches
+   an ExecuteAsTemplate result under its TARGET path, not under the source
+   asset or the context passed in. Two pages sharing "svg/hero.svg" as the
+   target therefore get ONE cached result: measured on hugo v0.166.0, both
+   probe pages rendered the SECOND page's art. That is a silent
+   wrong-art-everywhere bug with a zero exit code, so the target embeds the
+   page slug. Nothing is published either way, because the result is only ever
+   read via .Content (never RelPermalink/Publish), so a per-page target costs
+   no file on disk.
+
+   ESCAPING, and why `safeHTML` is correct HERE while the SVG markup must stay
+   raw. Measured, not assumed:
+     - hero.svg is parsed as a plain-text template — Hugo has no escaper
+       context for a .svg target, exactly as for the documented
+       assets/css/template.css case — so it applies no contextual escaping of
+       its own. That is why hero.svg must never echo author text into an
+       output position; it consumes the title and tags as numbers only.
+     - The rendered .Content is a plain string containing real SVG markup. In
+       an HTML template the template layer would escape it, and the probe
+       confirmed the failure concretely: `{{ $t.Content }}` reached the page
+       as `&lt;svg …&gt;`, a visible text blob instead of a graphic. So
+       `safeHTML` is mandatory to mark the string trusted — this is a
+       structural assertion about markup this repo generates, NOT an assertion
+       that its contents are already-escaped text.
+     - The two are not in tension: markup is marked trusted, and the only
+       author-controlled values inside it never reach an output position.
+       Were that to change, the fix belongs inside hero.svg as
+       `| htmlEscape | safeHTML` (the exact pairing mermaid.html uses, and
+       the only pairing that yields exactly one escape round) — NOT an extra
+       round here, which would double-escape.
+
+   EMPTY OUTPUT FAILS THE BUILD. An invisible hero band is a hole in the page
+   that nobody notices until it is live, and `hero: true` would then be
+   indistinguishable from a broken template. errorf is non-zero-exit, matching
+   the mermaid shortcode's precedent, and .RelPermalink names the page that
+   broke. */ -}}
+{{- $tpl := "svg/hero.svg" -}}
+{{- $src := resources.Get $tpl -}}
+{{- if not $src -}}
+{{- errorf "hero: asset %q not found — the hero template is missing from assets/" $tpl -}}
+{{- end -}}
+{{- $seedSrc := .RelPermalink -}}
+{{- with .File }}{{ $seedSrc = .Path }}{{ end -}}
+{{- $seed := int (mod (math.Abs (float (hash.FNV32a $seedSrc))) 9973) -}}
+{{- $frontSeed := 0 -}}
+{{- with .Param "seed" -}}
+{{- $frontSeed = int (mod (math.Abs (float .)) 9973) -}}
+{{- end -}}
+{{- $out := $src | resources.ExecuteAsTemplate (printf "svg/hero/%s.svg" (path.Base .RelPermalink)) (dict "Seed" (add $seed $frontSeed) "Title" .Title "Tags" (.Params.tags | default slice)) -}}
+{{- $svg := $out.Content | safeHTML -}}
+{{- if not (strings.TrimSpace $svg) -}}
+{{- errorf "hero: %s rendered empty from %q — refusing to ship an invisible hero band" .RelPermalink $tpl -}}
+{{- end -}}
+{{- $svg -}}

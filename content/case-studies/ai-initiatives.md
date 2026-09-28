@@ -4,28 +4,103 @@ date: 2026-09-24
 draft: false
 tags: [platform, event-driven]
 summary: "A case study about engineering the data and delivery foundations that AI-driven initiatives depend on — reusing the pipeline, not rebuilding bespoke paths."
+hero: true
+showtoc: true
+diagrams: true
 ---
 
 ## The frame
 
-AI-driven initiatives need the same thing every other data consumer needs: reliable, well-formed data, delivered on a schedule the model can depend on. The temptation when a new initiative appears is to build it a bespoke data path — "this is special, it needs its own pipe". My view is the opposite. An AI initiative that needs training data, features, or inference inputs should sit on the same delivery pipeline as everything else, inheriting its filters, enrichments, file handling, and reliability guarantees.
+AI-driven initiatives need the same thing every other data consumer needs: reliable, well-formed data, delivered on a schedule the model can depend on.
 
-## The approach
+The temptation when a new initiative appears is to build it a bespoke data path — "this is special, it needs its own pipe". My view is the opposite. An AI initiative that needs training data, features, or inference inputs should sit on the same delivery pipeline as everything else, inheriting its filters, enrichments, file handling, and reliability guarantees.
 
-I now work on AI-driven initiatives, where the engineering contribution is largely about foundations: making sure the data those initiatives depend on is as robust as the data powering production retail measurement. That means:
+The reason is not elegance. It is that the failure modes of a bespoke path stay invisible until they are expensive.
 
-* **Reusing the pipeline.** Features and training inputs come from the same delivery chain as production payloads — same contracts, same file handling, same guarantees — rather than parallel bespoke plumbing.
-* **Making data dependable.** AI work compounds data-quality problems. Filtering, enrichment, and delivery have to be correct and observable, because a model silently learns from wrong data in a way a dashboard does not.
-* **Building with the platform.** The configuration framework and file-handling service apply to AI payloads too. An initiative that reuses them inherits years of hardening instead of starting from zero.
+## What reuse actually buys
 
-## Tradeoffs
+Reuse is not a slogan. It is a concrete set of commitments the AI consumer inherits, and that a bespoke path has to re-earn one at a time.
 
-Foundations work has its own discipline:
+{{< mermaid caption="One spine, two payloads. The AI path is a consumer of the shared pipeline, not a parallel build." >}}
+flowchart TB
+  A["@store Source systems"] --> B["@work Query and filter"]
+  B --> C["@step Enrichment"]
+  C --> D["@doc File handling"]
+  D --> E["@db Production payload"]
+  D --> F["@db AI training inputs"]
+  F --> G["@work Model or feature store"]
+{{< /mermaid >}}
 
-* **Speed versus durability.** It is faster to hack a one-off intake for a pilot. It is more durable to route it through the pipeline. The right answer is usually both: pilot fast on the pipeline, not off it.
-* **Generalization versus specificity.** A shared pipeline serves many consumers; an AI initiative may want unusual shapes. The pipeline should stretch for real needs and say no to accidental ones.
-* **Platform work versus visible features.** Foundations are invisible until they fail. That makes them easy to under-invest in — and expensive to retrofit later.
+A consumer sitting on that spine gets, without writing any of it:
 
-## Outcome and learnings
+- **Query pushdown.** The filter stage narrows data before enrichment runs, so the AI consumer never inherits a superset it has to discard.
+- **Enrichment correctness.** Derived context — pricing, classification, measurement metadata — is computed once and identically for every consumer.
+- **File-handling reliability.** Framing, checksums, retries, and partial-file semantics are solved once and tested once.
+- **Observability.** Every delivery already reports what it produced, when, and whether it was complete.
 
-The direction of travel is clear: AI-driven initiatives that inherit the pipeline's guarantees are cheaper to operate and safer to scale than ones that each build their own data path. The main learning is that data delivery is the substrate for everything else. Get the pipeline robust, and every consumer — human, service, or model — stands on the same solid ground.
+A bespoke path gets none of these. It gets a second implementation of each, drifting independently.
+
+## The data contract
+
+The unit that makes this work is the delivery envelope. It is deliberately boring: an identifier, a schema reference, a window, and a content reference. The point is that a model-training consumer and a reporting consumer receive the *same* envelope, so "the AI data" is not a special object with its own semantics — it is a payload with a declared purpose.
+
+```json {title="delivery-envelope.json"}
+{
+  "deliveryId": "d-2026-03-14-000417",
+  "schema": "measurement.observation.v3",
+  "window": {
+    "from": "2026-03-14T00:00:00Z",
+    "to": "2026-03-14T04:00:00Z"
+  },
+  "purpose": "training",
+  "contentUri": "gs://delivery-artifacts/d-2026-03-14-000417/observations.bin",
+  "recordCount": 184203,
+  "complete": true
+}
+```
+
+Two properties are doing the real work.
+
+**`schema` is a versioned reference, not a copy of the data.** Consumers pin a version; the producer can add fields without silently changing what an existing consumer reads. That is what makes it safe for an AI consumer and a reporting consumer to share a producer.
+
+**`complete` is explicit.** A truncated payload is a normal condition of failure, not an exceptional one. Because the envelope states it, a consumer can refuse to train on partial data instead of quietly learning from half a window. Most data-quality incidents I have seen come from a consumer that could not tell the difference.
+
+## Deriving features from the same chain
+
+The AI consumer's job is then ordinary pipeline work. Features come out of the same filter and enrichment stages that produce production payloads, so feature definitions and production definitions cannot silently diverge.
+
+```go {title="feature-extraction.go"}{linenos=false}
+func buildFeatures(rows []Observation) ([]FeatureRow, error) {
+    out := make([]FeatureRow, 0, len(rows))
+    for _, r := range rows {
+        if !r.HasPrice || !r.HasClassification() {
+            // Fail loudly rather than emit a row with silent defaults.
+            return nil, fmt.Errorf("incomplete observation %s", r.ID)
+        }
+        out = append(out, FeatureRow{
+            StoreID:   r.StoreID,
+            WeekIndex: r.WeekIndex,
+            PriceIdx:  Normalize(r.PriceIndex),
+        })
+    }
+    return out, nil
+}
+```
+
+The early return matters more than it looks. A pipeline that substitutes a default for missing data converts a data problem into a model problem, and the model problem is discovered weeks later with no obvious cause.
+
+## Failure modes that compound
+
+AI work makes data-quality problems worse than dashboards do, and the reason is worth being precise about.
+
+- **A dashboard is read by a person who can notice something looks wrong.** A model does not notice. It fits the data it is given, including the part that arrived truncated, duplicated, or mis-enriched.
+- **Errors compound through derived state.** If enrichment is wrong for one window, a feature built from it is wrong; the next feature built from *that* is wrong in a way no longer traceable to the original cause.
+- **Retraining hides regressions.** A silently degraded input does not fail loudly; it produces a slightly worse model, and the regression gets attributed to the model rather than the pipeline.
+
+This is the strongest practical argument for the shared spine. The pipeline already has the observability to catch a bad window, because a reporting consumer would have complained.
+
+## What I'd do differently
+
+- **Version the purpose, not just the schema.** `purpose: training` is useful, but a consumer that can be retrained on a changed schema needs the previous version to stay reproducible. I would keep both until the retrain window closes.
+- **Make completeness checkable, not just declared.** `complete: true` is a promise. A checksum or a record-count reconciliation against the source would make it verifiable, and would let a consumer reject a payload without trusting the producer.
+- **Write the failure test first.** For each AI consumer, the most valuable test is the one where the pipeline delivers a partial window. If nobody has run that, the consumer is not ready to be on the shared spine.

@@ -1,0 +1,121 @@
+/* ============================================================================
+   CHROMA — LIGHT-THEME TOKEN PALETTE
+   (assets/css/extended/chroma-light.css)
+   ----------------------------------------------------------------------------
+   WHY THIS FILE EXISTS. PaperMod concatenates every file in
+   assets/css/extended/ and ships ONE chroma palette
+   (assets/css/includes/chroma-styles.css) whose tokens are a dark palette —
+   light text on a dark surface. The code surface therefore stayed dark in the
+   light theme as well, via `--vm-article-code-bg: var(--vm-espresso)`.
+
+   That was a deliberate trade and it is now reversed: the code block follows the
+   page theme. Flipping the background is not enough on its own — the syntax
+   tokens have to change with it, which is what this file is.
+
+   WHY `github` AND NOT `catppuccin-latte`. Latte is the light half of the same
+   family PaperMod's dark stylesheet draws from, so it was the obvious pick for
+   visual coherence. It fails contrast: measured against this site's light
+   surface (#FFF7ED), 9 of Latte's 13 token colours miss WCAG AA — orange 2.81,
+   muted 2.04, teal 3.53. Latte is tuned for its own #eff1f5 background and does
+   not survive being placed on a lighter one. `github` is purpose-built for a
+   light surface: on the same background only its line-number grey falls short,
+   and that one is corrected below. Coherence lost, legibility kept.
+
+   LINE NUMBERS. GitHub ships .lnt/.ln at #7f7f7f (3.77:1 here). Line numbers
+   are real text, so they are darkened to #57606a (6.02:1) rather than left to
+   fail. Do not "restore" the generated value.
+
+   SCOPE. `html[data-theme="light"] .vm-article .vm-article-body` only. Code
+   blocks exist nowhere else, and a narrow scope keeps these rules off the
+   homepage shell and any future surface. Specificity (0,5,1) beats PaperMod's
+   (0,2,0) without !important.
+
+   CASCADE. assets/css/extended/ is concatenated alphabetically, so this lands
+   BEFORE single.css. That is deliberate: single.css owns the surface
+   (background, radius, border, gutter) and keeps the last word. This file
+   supplies token COLOURS only.
+
+   REGENERATING. `hugo gen chromastyles --style=github`, then re-scope every
+   selector and re-check contrast against the light surface. Keep this a
+   generated artefact; hand-editing token colours makes it drift from Chroma.
+   ============================================================================ */
+
+/* Background */ html[data-theme="light"] .vm-article .vm-article-body .bg { background-color:#f7f7f7; }
+/* PreWrapper */ html[data-theme="light"] .vm-article .vm-article-body .chroma { background-color:#f7f7f7;-webkit-text-size-adjust:none; }
+/* Error */ html[data-theme="light"] .vm-article .vm-article-body .chroma .err { color:#f6f8fa;background-color:#82071e }
+/* LineLink */ html[data-theme="light"] .vm-article .vm-article-body .chroma .lnlinks { outline:none;text-decoration:none;color:inherit }
+/* LineTableTD */ html[data-theme="light"] .vm-article .vm-article-body .chroma .lntd { vertical-align:top;padding:0;margin:0;border:0; }
+/* LineTable */ html[data-theme="light"] .vm-article .vm-article-body .chroma .lntable { border-spacing:0;padding:0;margin:0;border:0; }
+/* LineHighlight */ html[data-theme="light"] .vm-article .vm-article-body .chroma .hl { background-color:#dedede }
+/* LineNumbersTable */ html[data-theme="light"] .vm-article .vm-article-body .chroma .lnt { white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f }
+/* LineNumbers */ html[data-theme="light"] .vm-article .vm-article-body .chroma .ln { white-space:pre;-webkit-user-select:none;user-select:none;margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f }
+/* Line */ html[data-theme="light"] .vm-article .vm-article-body .chroma .line { display:flex; }
+/* Keyword */ html[data-theme="light"] .vm-article .vm-article-body .chroma .k { color:#cf222e }
+/* KeywordConstant */ html[data-theme="light"] .vm-article .vm-article-body .chroma .kc { color:#cf222e }
+/* KeywordDeclaration */ html[data-theme="light"] .vm-article .vm-article-body .chroma .kd { color:#cf222e }
+/* KeywordNamespace */ html[data-theme="light"] .vm-article .vm-article-body .chroma .kn { color:#cf222e }
+/* KeywordPseudo */ html[data-theme="light"] .vm-article .vm-article-body .chroma .kp { color:#cf222e }
+/* KeywordReserved */ html[data-theme="light"] .vm-article .vm-article-body .chroma .kr { color:#cf222e }
+/* KeywordType */ html[data-theme="light"] .vm-article .vm-article-body .chroma .kt { color:#cf222e }
+/* NameAttribute */ html[data-theme="light"] .vm-article .vm-article-body .chroma .na { color:#1f2328 }
+/* NameClass */ html[data-theme="light"] .vm-article .vm-article-body .chroma .nc { color:#1f2328 }
+/* NameConstant */ html[data-theme="light"] .vm-article .vm-article-body .chroma .no { color:#0550ae }
+/* NameDecorator */ html[data-theme="light"] .vm-article .vm-article-body .chroma .nd { color:#0550ae }
+/* NameEntity */ html[data-theme="light"] .vm-article .vm-article-body .chroma .ni { color:#6639ba }
+/* NameLabel */ html[data-theme="light"] .vm-article .vm-article-body .chroma .nl { color:#900;font-weight:bold }
+/* NameNamespace */ html[data-theme="light"] .vm-article .vm-article-body .chroma .nn { color:#24292e }
+/* NameOther */ html[data-theme="light"] .vm-article .vm-article-body .chroma .nx { color:#1f2328 }
+/* NameTag */ html[data-theme="light"] .vm-article .vm-article-body .chroma .nt { color:#0550ae }
+/* NameBuiltin */ html[data-theme="light"] .vm-article .vm-article-body .chroma .nb { color:#6639ba }
+/* NameBuiltinPseudo */ html[data-theme="light"] .vm-article .vm-article-body .chroma .bp { color:#6a737d }
+/* NameVariable */ html[data-theme="light"] .vm-article .vm-article-body .chroma .nv { color:#953800 }
+/* NameVariableClass */ html[data-theme="light"] .vm-article .vm-article-body .chroma .vc { color:#953800 }
+/* NameVariableGlobal */ html[data-theme="light"] .vm-article .vm-article-body .chroma .vg { color:#953800 }
+/* NameVariableInstance */ html[data-theme="light"] .vm-article .vm-article-body .chroma .vi { color:#953800 }
+/* NameVariableMagic */ html[data-theme="light"] .vm-article .vm-article-body .chroma .vm { color:#953800 }
+/* NameFunction */ html[data-theme="light"] .vm-article .vm-article-body .chroma .nf { color:#6639ba }
+/* NameFunctionMagic */ html[data-theme="light"] .vm-article .vm-article-body .chroma .fm { color:#6639ba }
+/* LiteralString */ html[data-theme="light"] .vm-article .vm-article-body .chroma .s { color:#0a3069 }
+/* LiteralStringAffix */ html[data-theme="light"] .vm-article .vm-article-body .chroma .sa { color:#0a3069 }
+/* LiteralStringBacktick */ html[data-theme="light"] .vm-article .vm-article-body .chroma .sb { color:#0a3069 }
+/* LiteralStringChar */ html[data-theme="light"] .vm-article .vm-article-body .chroma .sc { color:#0a3069 }
+/* LiteralStringDelimiter */ html[data-theme="light"] .vm-article .vm-article-body .chroma .dl { color:#0a3069 }
+/* LiteralStringDoc */ html[data-theme="light"] .vm-article .vm-article-body .chroma .sd { color:#0a3069 }
+/* LiteralStringDouble */ html[data-theme="light"] .vm-article .vm-article-body .chroma .s2 { color:#0a3069 }
+/* LiteralStringEscape */ html[data-theme="light"] .vm-article .vm-article-body .chroma .se { color:#0a3069 }
+/* LiteralStringHeredoc */ html[data-theme="light"] .vm-article .vm-article-body .chroma .sh { color:#0a3069 }
+/* LiteralStringInterpol */ html[data-theme="light"] .vm-article .vm-article-body .chroma .si { color:#0a3069 }
+/* LiteralStringOther */ html[data-theme="light"] .vm-article .vm-article-body .chroma .sx { color:#0a3069 }
+/* LiteralStringRegex */ html[data-theme="light"] .vm-article .vm-article-body .chroma .sr { color:#0a3069 }
+/* LiteralStringSingle */ html[data-theme="light"] .vm-article .vm-article-body .chroma .s1 { color:#0a3069 }
+/* LiteralStringSymbol */ html[data-theme="light"] .vm-article .vm-article-body .chroma .ss { color:#032f62 }
+/* LiteralNumber */ html[data-theme="light"] .vm-article .vm-article-body .chroma .m { color:#0550ae }
+/* LiteralNumberBin */ html[data-theme="light"] .vm-article .vm-article-body .chroma .mb { color:#0550ae }
+/* LiteralNumberFloat */ html[data-theme="light"] .vm-article .vm-article-body .chroma .mf { color:#0550ae }
+/* LiteralNumberHex */ html[data-theme="light"] .vm-article .vm-article-body .chroma .mh { color:#0550ae }
+/* LiteralNumberInteger */ html[data-theme="light"] .vm-article .vm-article-body .chroma .mi { color:#0550ae }
+/* LiteralNumberIntegerLong */ html[data-theme="light"] .vm-article .vm-article-body .chroma .il { color:#0550ae }
+/* LiteralNumberOct */ html[data-theme="light"] .vm-article .vm-article-body .chroma .mo { color:#0550ae }
+/* Operator */ html[data-theme="light"] .vm-article .vm-article-body .chroma .o { color:#0550ae }
+/* OperatorWord */ html[data-theme="light"] .vm-article .vm-article-body .chroma .ow { color:#0550ae }
+/* OperatorReserved */ html[data-theme="light"] .vm-article .vm-article-body .chroma .or { color:#0550ae }
+/* Punctuation */ html[data-theme="light"] .vm-article .vm-article-body .chroma .p { color:#1f2328 }
+/* Comment */ html[data-theme="light"] .vm-article .vm-article-body .chroma .c { color:#57606a }
+/* CommentHashbang */ html[data-theme="light"] .vm-article .vm-article-body .chroma .ch { color:#57606a }
+/* CommentMultiline */ html[data-theme="light"] .vm-article .vm-article-body .chroma .cm { color:#57606a }
+/* CommentSingle */ html[data-theme="light"] .vm-article .vm-article-body .chroma .c1 { color:#57606a }
+/* CommentSpecial */ html[data-theme="light"] .vm-article .vm-article-body .chroma .cs { color:#57606a }
+/* CommentPreproc */ html[data-theme="light"] .vm-article .vm-article-body .chroma .cp { color:#57606a }
+/* CommentPreprocFile */ html[data-theme="light"] .vm-article .vm-article-body .chroma .cpf { color:#57606a }
+/* GenericDeleted */ html[data-theme="light"] .vm-article .vm-article-body .chroma .gd { color:#82071e;background-color:#ffebe9 }
+/* GenericEmph */ html[data-theme="light"] .vm-article .vm-article-body .chroma .ge { color:#1f2328 }
+/* GenericInserted */ html[data-theme="light"] .vm-article .vm-article-body .chroma .gi { color:#116329;background-color:#dafbe1 }
+/* GenericOutput */ html[data-theme="light"] .vm-article .vm-article-body .chroma .go { color:#1f2328 }
+/* GenericUnderline */ html[data-theme="light"] .vm-article .vm-article-body .chroma .gl { text-decoration:underline }
+/* TextWhitespace */ html[data-theme="light"] .vm-article .vm-article-body .chroma .w { color:#fff }
+/* LineNumbers / LineNumbersTable — darkened for AA; see header. GitHub's own
+   #7f7f7f measures 3.77:1 on this surface. */
+html[data-theme="light"] .vm-article .vm-article-body .chroma .lnt,
+html[data-theme="light"] .vm-article .vm-article-body .chroma .ln {
+    color: #57606a;
+}

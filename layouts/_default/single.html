@@ -94,6 +94,17 @@
     </header>
     {{- $isHidden := (.Param "cover.hiddenInSingle") | default (.Param "cover.hidden") | default false }}
     {{- partial "cover.html" (dict "cxt" . "IsSingle" true "isHidden" $isHidden) }}
+    {{- /* HERO BAND (D-2) — additive, deliberately ALONGSIDE the cover call
+           above rather than replacing it. $isHidden picks up the site-level
+           cover.hiddenInSingle: true (hugo.yaml:61), so cover.html is a
+           dormant no-op on every page today; leaving it untouched and
+           unreordered means a page that ever sets a real cover.image still
+           renders it. Opt in per page with front-matter `hero: true` (T5-T8
+           own the content side). hero.html returns the SVG string; the
+           wrapper is here. Styles: assets/css/extended/single.css. */ -}}
+    {{- if (.Param "hero") }}
+    <div class="vm-article-hero">{{ partial "hero.html" . }}</div>
+    {{- end }}
     {{- if (.Param "ShowToc") }}
     {{- partial "toc.html" . }}
     {{- end }}

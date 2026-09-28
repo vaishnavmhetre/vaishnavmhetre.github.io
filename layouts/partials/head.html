@@ -241,6 +241,379 @@
 </script>
 {{- end }}
 
+{{- /* ===================================================================
+       MERMAID LOADER (plan contract D-1) — opt-in, per page.
+       ---------------------------------------------------------------------
+       GATING. Shortcode output is already spliced into .Content by the time
+       this partial renders, so the template CANNOT tell a page that has
+       diagrams from one that does not. The author opts in explicitly via
+       front matter — `diagrams: true` — and Hugo's param lookup is
+       case-insensitive, so that single key IS the whole contract for T5-T8.
+       Every other page references the CDN nowhere: not lazily, not behind a
+       runtime `if`. A page without the param ships zero Mermaid bytes, and
+       that is measurable as a whole-page byte diff, not a claim.
+
+       WHY HERE. Directly after the theme-restore <script> blocks above
+       (lines 199-242). That inline script is what first sets
+       html[data-theme], so reading the theme at module-init time is correct
+       on a hard reload with a stored preference. Module scripts are deferred
+       by default, so this always runs after that inline script regardless.
+
+       VERSION PIN — 11.17.2, deliberately NOT `latest`. The `latest` tag is
+       12.0.0, published 2026-09-10: eighteen days old at pin time, a MAJOR
+       with a re-cut chunk graph. 11.17.2 is the final 11.x, settled for four
+       weeks, with zero known advisories. Pinned exactly — no range, no
+       `latest` — because the SRI hash below is only meaningful against an
+       immutable URL, and an immutable URL is the entire point.
+
+       SRI. sha384 over the exact bytes of dist/mermaid.esm.min.mjs, checked
+       byte-identical against the copy inside the mermaid-11.17.2.tgz npm
+       tarball (30255 bytes) rather than trusted from the CDN. The
+       `crossorigin` attribute is REQUIRED, not decoration: a module fetched
+       outside CORS mode never has its integrity checked at all. jsDelivr
+       sends `access-control-allow-origin: *`, so it passes.
+
+       HONEST LIMIT of this pattern, recorded so nobody "fixes" it later
+       without knowing: that entry file is only 30KB because Mermaid
+       code-splits — it statically imports ~30 sibling chunks under
+       dist/chunks/ that SRI on the entry point structurally cannot cover, and
+       ESM has no `integrity` attribute for `import()`. What IS enforced: the
+       entry module that executes is hash-pinned, and every chunk it pulls is
+       pinned by the immutable versioned URL. The second `import()` below
+       exists only to obtain the module's default export; it resolves the
+       already-fetched, already-verified entry from the module map rather than
+       re-fetching it.
+       =================================================================== */ -}}
+{{- if .Params.diagrams }}
+{{- $mermaidURL := "https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs" }}
+<script>
+/* MUST precede the module <script src> below. Mermaid's ESM build reads
+   window.mermaidConfig AT IMPORT TIME and, if startOnLoad is still the
+   default true, auto-runs over every .mermaid element on DOMContentLoaded.
+   That auto-run is the bug this line fixes: it consumed the <pre> text
+   BEFORE the init script below ran, so the loader's own reset() captured
+   an already-empty textContent and every diagram rendered nothing — with
+   zero console output. Setting the flag first makes the auto-start observe
+   startOnLoad:false, leaving this loader as the single render authority. */
+window.mermaidConfig = { startOnLoad: false, theme: "base", suppressErrorRendering: true, useMaxWidth: true };
+</script>
+<script type="module" src="{{ $mermaidURL }}" integrity="sha384-WpV0mnoAILtx5vne0am/qjdpWLSB/nef78GMd221pz6JKoZNgONGZbSu4ppDDPx/" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script type="module">
+(function () {
+  "use strict";
+  var MMD = "{{ $mermaidURL }}";
+  var SELECTOR = "pre.vm-mermaid";
+  var root = document.documentElement;
+
+  // Custom properties are substituted lazily: getPropertyValue on
+  // --vm-page-bg returns the literal token text ` var(--vm-espresso)`, not the
+  // resolved colour. So follow var() indirection by hand, depth-capped.
+  function token(name) {
+    var v = getComputedStyle(root).getPropertyValue(name).trim();
+    for (var i = 0; i < 4; i++) {
+      var m = /^var\((--[a-z0-9-]+)\)$/i.exec(v);
+      if (!m) break;
+      v = getComputedStyle(root).getPropertyValue(m[1]).trim();
+    }
+    return v;
+  }
+
+  // Every colour is READ from the existing --vm-* design tokens rather than
+  // hardcoded here. This is what keeps the diagrams inside the frozen palette
+  // (no new colour invented) and what makes the theme flip work without a
+  // second palette: light/dark already redefines these tokens, so re-reading
+  // them is the whole update. `base` is the neutral Mermaid theme that
+  // derives everything else from these.
+  function themeVariables() {
+    return {
+      background: token("--vm-page-bg"),
+      primaryColor: token("--vm-card-dark-solid"),
+      mainBkg: token("--vm-card-dark-solid"),
+      secondaryColor: token("--vm-card-dark-solid"),
+      tertiaryColor: token("--vm-card-dark-solid"),
+      primaryTextColor: token("--vm-card-ink"),
+      primaryBorderColor: token("--vm-line-strong"),
+      nodeBorder: token("--vm-line-strong"),
+      lineColor: token("--vm-line"),
+      textColor: token("--vm-card-ink"),
+      titleColor: token("--vm-card-ink"),
+      clusterBkg: token("--vm-ghost-hover-bg"),
+      clusterBorder: token("--vm-line"),
+      edgeLabelBackground: token("--vm-page-bg"),
+      // 16px = --vm-article-prose (1rem), so diagram labels sit on the same
+      // rhythm as body copy instead of Mermaid's 16px-default-on-a-16px-root
+      // accident.
+      fontSize: "16px"
+    };
+  }
+
+  function nodes() {
+    return Array.prototype.slice.call(document.querySelectorAll(SELECTOR));
+  }
+
+  // Mermaid's render loop begins `if (el.getAttribute("data-processed"))
+  // continue;` — so a second run() over already-rendered <pre>s is a SILENT
+  // NO-OP, not an error. Resetting that flag (and the element's contents, which
+  // Mermaid has replaced with its own <svg>) is the whole reason a theme flip
+  // re-renders at all. Stashing textContent — not innerHTML — round-trips
+  // correctly: the browser re-encodes on parse, so Mermaid's internal
+  // entityDecode() lands back on the original bytes, and the no-CDN fallback
+  // path below still shows correctly-escaped text.
+  function reset(el) {
+    // Capture the source ONCE, and never let an empty capture overwrite a
+    // good one. A failed or auto-started run can leave textContent empty; the
+    // original bytes only exist in data-vm-source after that point, so
+    // re-stashing "" would permanently destroy them and the error path below
+    // would restore nothing. Whichever value is non-empty wins.
+    if (!("vmSource" in el.dataset)) el.dataset.vmSource = el.textContent;
+    if (!el.dataset.vmSource && el.textContent) el.dataset.vmSource = el.textContent;
+    el.removeAttribute("data-processed");
+    el.textContent = el.dataset.vmSource;
+  }
+
+  /* LEGIBILITY FLOOR. `useMaxWidth` scales a diagram DOWN to fit the column,
+     and because the scale is (rendered / viewBox width) it scales the TEXT
+     down with it. A wide diagram therefore does not just get small, it gets
+     unreadable: measured across the four articles before this existed, four
+     of six diagrams painted their 15px labels at 3.8-5.0px, the worst being a
+     19:1 sliver. Nothing errors, the build is green, and the figure simply
+     looks broken.
+
+     CSS cannot fix this — a viewBox diagram has one intrinsic size, so the
+     only choices are "shrink everything" or "scroll". So this measures after
+     render and, when the implied scale would drop the labels below
+     MIN_SCALE, pins a min-width on the svg. min-width beats Mermaid's inline
+     max-width per CSS cascade, so the figure keeps a readable size and the
+     container scrolls horizontally instead. Tall-and-scrollable beats
+     wide-and-illegible.
+
+     The authoring fix is to keep diagrams portrait (see docs/diagrams.md);
+     this is the net for when one slips through. */
+  var MIN_SCALE = 0.8;
+
+  function enforceLegibility(el) {
+    var svg = el.querySelector("svg");
+    if (!svg) return;
+    var vb = (svg.getAttribute("viewBox") || "").split(/\s+/).map(Number);
+    if (vb.length !== 4 || !vb[2]) return;
+    var rendered = svg.getBoundingClientRect().width;
+    if (!rendered) return;
+    if (rendered / vb[2] >= MIN_SCALE) return;
+    svg.style.minWidth = Math.ceil(vb[2] * MIN_SCALE) + "px";
+    el.dataset.mermaidMinWidth = String(Math.ceil(vb[2] * MIN_SCALE));
+  }
+
+  /* ===================================================================
+     ICONS. Mermaid 11 cannot put an image in a node: Font Awesome node
+     classes were removed in v10 and its markdown-image label syntax fails
+     the flowchart lexer ("Lexical error ... Unrecognized text"). So icons are
+     injected AFTER render instead, keyed off a marker in the node label:
+
+         A["@db Source database"]      ->  a database glyph, marker removed
+
+     The marker is stripped and replaced with an inline <svg> in the label's
+     own <p>, so the node box sizes itself around the icon and the layout
+     engine never sees the extra text. Inline SVG (not <img>) keeps the stroke
+     on currentColor, so an icon themes with the site and needs no extra
+     request — the same reasoning as the Lucide chevron in the TOC.
+
+     Glyphs are Lucide (ISC, lucide.dev), the same source as that chevron, so
+     the two icon sets share a stroke weight and cap style. `c` is a design
+     token, not a hex: that per-role colour is what gives the diagrams
+     differentiation without inventing hues — storage, compute, client and
+     process read as different kinds of thing at a glance.
+     =================================================================== */
+  /* Icon tone is built from the two WARM tokens that FLIP with the theme
+     (--vm-peach-italic, --vm-eyebrow) and never from --vm-accent / --vm-accent-2,
+     which are static brand orange. Measured: on the light-theme node fill
+     (#FFF7ED) the static accents give only 2.46:1 and 2.19:1 — the icons looked
+     washed out and unreadable, which defeats the point of having them. The
+     flipping tokens clear 3:1 (the WCAG bar for non-text graphics) in BOTH
+     themes. color-mix() over flipping tokens keeps deriving distinct roles
+     without introducing a hue. */
+  var ICONS = {
+    db:     { c: "color-mix(in oklab,var(--vm-peach-italic) 88%,var(--vm-accent))", d: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>' },
+    server: { c: "var(--vm-peach-italic)", d: '<rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><path d="M6 7h.01M6 17h.01"/>' },
+    client: { c: "var(--vm-eyebrow)",       d: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>' },
+    store:  { c: "color-mix(in oklab,var(--vm-eyebrow) 82%,var(--vm-accent))", d: '<path d="M22 12H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01M10 16h.01"/>' },
+    doc:    { c: "color-mix(in oklab,var(--vm-eyebrow) 70%,var(--vm-peach-italic))", d: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5M9 13h6M9 17h6"/>' },
+    people: { c: "var(--vm-peach-italic)", d: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/>' },
+    step:   { c: "color-mix(in oklab,var(--vm-peach-italic) 62%,var(--vm-eyebrow))", d: '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>' },
+    work:   { c: "var(--vm-eyebrow)",       d: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/>' }
+  };
+
+  var ICON_RE = /^@([a-z]+)\s+/;
+
+  function iconSvg(name) {
+    var spec = ICONS[name];
+    if (!spec) return null;
+    return '<svg class="vm-diagram-icon" viewBox="0 0 24 24" fill="none" stroke="' +
+      spec.c + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+      'aria-hidden="true" focusable="false">' + spec.d + "</svg>";
+  }
+
+  function applyIcons(scope) {
+    var labels = (scope || document).querySelectorAll(
+      ".nodeLabel, .statediagram-state .nodeLabel, .clusterLabel"
+    );
+    for (var i = 0; i < labels.length; i++) {
+      var p = labels[i].querySelector("p") || labels[i];
+      // Only touch a label that still carries a marker; once consumed the
+      // text no longer matches, so this is safe to re-run on theme re-render.
+      var m = ICON_RE.exec(p.textContent.trim());
+      if (!m || !ICONS[m[1]]) continue;
+      p.textContent = p.textContent.trim().replace(ICON_RE, "");
+      p.insertAdjacentHTML("afterbegin", iconSvg(m[1]) + " ");
+      p.classList.add("vm-diagram-iconlabel");
+    }
+  }
+
+  /* ===================================================================
+     DIAGRAM STANDARD — the single global definition. Every diagram on
+     every page is rendered through this one initialize() call, so these
+     values ARE the house style; per-article overrides are not a thing.
+     Each number below was measured, not guessed (see the notepad entry
+     "diagram standard" for the sweep).
+
+       TYPE SCALE — a 3px step, and the reason the old figures looked
+       unfinished. Mermaid shipped node AND edge labels both at 16px, so
+       an edge label shouted as loudly as the thing it annotates and the
+       eye had no entry point. Now:
+         node / state label   15px  the content
+         edge / transition    12px  the annotation
+         cluster / subgraph   12px  the grouping
+       The `fontSize` option only reaches NODE labels — Mermaid's own
+       ID-scoped rule wins on the <g> for edges — so edge and cluster
+       sizes must come through themeCSS. Verified: fontSize:'15px'
+       alone left node labels at 16px until the themeCSS rule was added.
+
+       MARGINS — Mermaid's default <p> margin inside labels inflates the
+       box and was a contributor to label collisions. Zeroed here.
+
+       SPACING — nodeSpacing 56 / rankSpacing 80 is deliberately modest.
+       The measured overlap was caused by the type collision, not by
+       tight spacing: 48/64 already cleared it, and every value from
+       48/64 to 56/100 gave zero overlaps while height grew 570→750px.
+       56/80 keeps headroom for denser diagrams without the bloat.
+
+       FONT — the site's own --vm-font-sans, not Mermaid's default
+       "trebuchet ms", so a diagram reads as part of the page.
+
+       WIDTH — useMaxWidth keeps any diagram inside the 68ch measure;
+       the figure scrolls horizontally rather than widening the page.
+     =================================================================== */
+  var DIAGRAM_CSS = [
+    /* TYPE SCALE — 15 / 12 / 12.
+       `!important` is load-bearing and not laziness: Mermaid emits its theme
+       rules ID-scoped (`#mermaid-<id> .messageText{...}`, specificity 1-1-0),
+       which outranks any class-only selector we can write from outside. Verified:
+       without it the sequence figures silently stayed at Mermaid's 16px on BOTH
+       the participant boxes and the arrow labels — the exact flatness this
+       scale exists to remove. These are theme overrides, so !important is the
+       correct tool. */
+    ".nodeLabel,.nodeLabel p,.label,.label p{font-size:15px !important;margin:0;line-height:1.35}",
+    ".edgeLabel,.edgeLabel span,.labelBkg span{font-size:12px !important;line-height:1.3}",
+    ".clusterLabel,.clusterLabel span{font-size:12px !important;line-height:1.3}",
+    /* sequenceDiagram paints SVG <text>, not HTML, and its participants are
+       `text.actor` over `rect.actor-top` / `rect.actor-bottom` — there is no
+       `.node` and no `g.actor` to hook. */
+    "text.actor,text.actor-box{font-size:15px !important}",
+    "text.messageText,text.loopText,text.noteText,text.labelText{font-size:12px !important;line-height:1.3}",
+
+    /* COLOUR ROLES. Mermaid's `base` theme paints every node the same flat
+       cream, which is why the figures read as untextured boxes. Each structural
+       role gets its own tint, all mixed from the site's existing tokens with
+       color-mix() — no new hue, and it re-themes with the site because it
+       resolves from the live custom properties. */
+    "g.node > rect,g.node > circle,g.node > ellipse,g.node > polygon," +
+    "g.node > path.basic,rect.actor-top,rect.actor-bottom" +
+    "{fill:color-mix(in oklab,var(--vm-accent) 7%,var(--vm-card-dark-solid)) !important;" +
+    "stroke:color-mix(in oklab,var(--vm-accent) 40%,transparent) !important}",
+    "g.statediagram-state > rect" +
+    "{fill:color-mix(in oklab,var(--vm-accent) 7%,var(--vm-card-dark-solid)) !important;" +
+    "stroke:color-mix(in oklab,var(--vm-accent) 40%,transparent) !important}",
+    "g.cluster > rect{fill:color-mix(in oklab,var(--vm-accent) 12%,transparent) !important;" +
+    "stroke:color-mix(in oklab,var(--vm-accent) 30%,transparent) !important;stroke-dasharray:4 4}",
+    /* message lines carry a numeric suffix (messageLine0, messageLine1, ...) */
+    ".flowchart-link,.edgePath path,line[class*='messageLine'],path[class*='messageLine']" +
+    "{stroke:var(--vm-accent) !important;stroke-opacity:.55}",
+    "marker path{fill:var(--vm-accent) !important;stroke:var(--vm-accent) !important}",
+    /* label backgrounds knock out to the page so text stays readable where it
+       crosses an edge */
+    ".edgeLabel .labelBkg,.labelBkg{fill:var(--vm-card-dark-solid) !important;fill-opacity:.92}"
+  ].join("");
+
+  function render(mermaid) {
+    var els = nodes();
+    if (!els.length) return;
+    els.forEach(reset);
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "base",
+      useMaxWidth: true,
+      fontFamily: token("--vm-font-sans"),
+      nodeSpacing: 56,
+      rankSpacing: 80,
+      diagramPadding: 14,
+      themeCSS: DIAGRAM_CSS,
+      // With this set, a parse failure THROWS instead of injecting Mermaid's
+      // "Syntax error in text" placeholder SVG, so the catch below can put the
+      // source back and leave a readable <pre>.
+      suppressErrorRendering: true,
+      themeVariables: themeVariables()
+    });
+    return mermaid.run({ nodes: els }).then(
+      function () {
+        els.forEach(function (el) {
+          el.dataset.mermaidState = "ready";
+          enforceLegibility(el);
+          applyIcons(el);
+        });
+      },
+      function (err) {
+        // A failed diagram must NEVER fail silently. This handler used to
+        // swallow the rejection outright, which is how a total no-render
+        // shipped behind a green build and an empty console. Log the reason
+        // and leave the source readable so it is diagnosable in the field.
+        console.error("[mermaid] render failed; source left visible.", err);
+        els.forEach(function (el) {
+          el.removeAttribute("data-processed");
+          el.textContent = el.dataset.vmSource;
+          el.dataset.mermaidState = "error";
+        });
+      }
+    );
+  }
+
+  // The CDN module above is loaded for its side effect and exposes no global,
+  // so the same specifier is imported here to get the default export. The
+  // browser serves this from the module map (fetched + integrity-checked by
+  // the <script src>), so this is not a second download.
+  import(MMD).then(
+    function (mod) {
+      var mermaid = mod.default;
+      render(mermaid);
+      // The repo has exactly one theme toggle, the delegated listener in
+      // extend_head.html, and it now dispatches vm:themechange. This is the
+      // only subscriber. A MutationObserver on data-theme would fire on
+      // unrelated attribute writes; a poll timer would be worse.
+      document.addEventListener("vm:themechange", function (e) {
+        // Re-read the tokens AFTER the flip has been written to
+        // html[data-theme], so initialize() sees the new palette.
+        render(mermaid);
+      });
+    },
+    function () {
+      // Offline, blocked CDN, or a failed integrity check. Nothing to do:
+      // the <pre class="mermaid"> elements still hold their escaped source
+      // text, which stays selectable and readable. Progressive enhancement,
+      // no throw, no broken page.
+    }
+  );
+})();
+</script>
+{{- end }}
+
 {{- partial "extend_head.html" . -}}
 
 {{- /* Misc */}}
