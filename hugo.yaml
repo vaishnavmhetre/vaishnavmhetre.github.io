@@ -27,6 +27,22 @@ params:
   # threshold, read by head.html (noindex), entry-card.html (pills) and
   # _default/sitemap.xml (sitemap) — change it here, not in the templates.
   minTagEntries: 2
+
+  # Favicons. layouts/partials/head.html reads these; before they existed every
+  # value was nil, so the template's defaults fired and pointed at files that
+  # were never in the repo — three 404s on every page load, on every deploy
+  # since the favicon links were added in 9652d7b. favicon.svg is the master;
+  # the PNG/ICO rasters are generated from it (see static/favicon.svg).
+  # theme_color follows the site: espresso, the dark-theme default surface.
+  assets:
+    favicon: /favicon.ico
+    favicon16x16: /favicon-16x16.png
+    favicon32x32: /favicon-32x32.png
+    faviconSvg: /favicon.svg
+    apple_touch_icon: /apple-touch-icon.png
+    safari_pinned_tab: /safari-pinned-tab.svg
+    theme_color: "#140B06"
+    msapplication_TileColor: "#140B06"
   title: "Vaishnav Mhetre — Platform Engineer & Data Engineer"
   description: "Binary data delivery, event-driven systems, and microservices on GCP — engineer-facing portfolio and blog."
   keywords: ["Java", "TypeScript", "Node.js", "GCP", "Spring Boot", "Kafka", "event-driven", "microservices", "binary data delivery", "motor insurance", "market data"]

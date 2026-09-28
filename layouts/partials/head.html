@@ -142,14 +142,20 @@
 {{- end }}
 {{- end -}}
 
-{{- /* Favicons */}}
+{{- /* Favicons. The SVG is listed first because browsers that support it
+       prefer it and never fall through to the raster; the .ico and PNGs stay
+       for everything else. Paths come from params.assets (hugo.yaml), which
+       also carries theme-color. Before those params existed every value was nil
+       and the defaults pointed at files that were never in the repo, so each
+       of these six links 404ed on every page load. */}}
+<link rel="icon" type="image/svg+xml" href="{{ site.Params.assets.faviconSvg | default "favicon.svg" | absURL }}">
 <link rel="icon" href="{{ site.Params.assets.favicon | default "favicon.ico" | absURL }}">
 <link rel="icon" type="image/png" sizes="16x16" href="{{ site.Params.assets.favicon16x16 | default "favicon-16x16.png" | absURL }}">
 <link rel="icon" type="image/png" sizes="32x32" href="{{ site.Params.assets.favicon32x32 | default "favicon-32x32.png" | absURL }}">
-<link rel="apple-touch-icon" href="{{ site.Params.assets.apple_touch_icon | default "apple-touch-icon.png" | absURL }}">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ site.Params.assets.apple_touch_icon | default "apple-touch-icon.png" | absURL }}">
 <link rel="mask-icon" href="{{ site.Params.assets.safari_pinned_tab | default "safari-pinned-tab.svg" | absURL }}">
-<meta name="theme-color" content="{{ site.Params.assets.theme_color | default "#2e2e33" }}">
-<meta name="msapplication-TileColor" content="{{ site.Params.assets.msapplication_TileColor | default "#2e2e33" }}">
+<meta name="theme-color" content="{{ site.Params.assets.theme_color | default "#140B06" }}">
+<meta name="msapplication-TileColor" content="{{ site.Params.assets.msapplication_TileColor | default "#140B06" }}">
 
 {{- /* RSS */}}
 {{ range .AlternativeOutputFormats -}}
