@@ -55,13 +55,27 @@
 {{- /* Intrinsic size from the viewBox, so width/height are reserved and the
        page does not shift as images arrive. Read via .Content rather than a
        hardcoded guess so a regenerated diagram that changes size stays
-       correct without editing this file. */ -}}
+       correct without editing this file.
+
+       The capture keeps the surrounding quotes, so the parts come back as
+       `viewBox="0`, `0`, `W`, `H"`. Trim them or the attributes render as
+       height="1352&#34;", which the minifier then turns into broken markup
+       and the browser ignores — silently costing the layout reservation. */ -}}
+{{- $pos := .Position -}}
 {{- $vb := index ($light.Content | findRE "viewBox=\"[^\"]+\"") 0 -}}
 {{- $dims := slice -}}
 {{- with $vb -}}
   {{- $parts := split . " " -}}
   {{- if eq (len $parts) 4 -}}
-    {{- $dims = slice (index $parts 2) (index $parts 3) -}}
+    {{- $w := trim (index $parts 2) "\"" -}}
+    {{- $h := trim (index $parts 3) "\"" -}}
+    {{- if and (findRE "^[0-9]+$" $w) (findRE "^[0-9]+$" $h) -}}
+      {{- $dims = slice $w $h -}}
+    {{- else -}}
+      {{- errorf "diagram shortcode: could not read numeric size for %q from its viewBox (got width=%q height=%q) at %s — regenerate with `python3 scripts/diagrams/build.py`." $name $w $h $pos -}}
+    {{- end -}}
+  {{- else -}}
+    {{- errorf "diagram shortcode: unexpected viewBox %q for %q at %s — expected four space-separated parts." $vb $name $pos -}}
   {{- end -}}
 {{- end -}}
 <figure class="vm-figure vm-figure--diagram">

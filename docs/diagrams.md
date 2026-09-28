@@ -267,6 +267,26 @@ column a landscape diagram does not render small, it renders **illegible**. CSS
 cannot fix this: the only choices are shrink everything or scroll. There is no
 third option, and no post-render guard to paper over it.
 
+**Read the effective label size, not the aspect ratio.** A 2223px-wide diagram
+dropped into the 566px measure scales to 0.25x, so 20px node text renders at
+about 5px. A two-column layout that *looks* well proportioned can be far worse
+than a tall single column. `02-delivery-pipeline` was tried as two columns
+specifically to halve its 1500px height, and the result was 5px labels and
+off-palette containers (D2 renders containers with its own blue fill, `#E3E9FD`
+/ `#F7F8FE`, which is not reachable from the `.d2` source). Reverted.
+
+Both of the two CSS extremes have now been shipped and reverted, so the rule
+is a middle ground:
+
+- `max-width: 100%` shrinks everything to fit. Correct for a slightly wide
+  figure, illegible for a very wide one.
+- `max-width: none` never shrinks, so a figure barely wider than the measure
+  overflows and **clips a node mid-shape**. This regressed `01-ai-pipeline`
+  (621px) before it was caught.
+- The shipped value is `max-width: 820px`: a figure up to ~1.4x the measure
+  overflows and scrolls, keeping text at full size; anything wider is scaled
+  back. Nothing clips, and no label renders below roughly 14px.
+
 So:
 
 - **Use `direction: down`.** Every diagram in the `DIAGRAMS` dict does. A
