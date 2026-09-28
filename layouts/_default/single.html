@@ -73,7 +73,18 @@
         </div>
         {{- end }}
         {{- $tags := .Language.Params.Taxonomies.tag | default "tags" }}
-        {{- with .GetTerms $tags }}
+        {{- /* Slice 05 — single-page half of the D5 pill rule. Deliberate MIRROR
+               of partials/entry-card.html: a term keeps its pill only with
+               params.minTagEntries entries (a thin term is noindexed + absent
+               from the sitemap). `with` so no <ul> renders when none qualify;
+               change one filter, change both. */ -}}
+        {{- $pills := slice }}
+        {{- range .GetTerms $tags }}
+        {{- if ge (len .Pages) (site.Params.minTagEntries | default 2) }}
+        {{- $pills = $pills | append . }}
+        {{- end }}
+        {{- end }}
+        {{- with $pills }}
         <ul class="vm-article-tags">
             {{- range . }}
             <li><a class="vm-pill" href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>

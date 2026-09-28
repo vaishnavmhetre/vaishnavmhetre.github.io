@@ -10,6 +10,11 @@ enableEmoji: true
 # <title>/og/twitter/JSON-LD value head.html derives from .Title. `none` keeps
 # generated titles verbatim, so a term name IS the vocabulary everywhere.
 titleCaseStyle: none
+# Hugo's DEFAULT taxonomy set adds `categories`: an empty page no content file
+# uses and nothing links to, while the contract's URL table lists /tags/ only.
+# Dropping the unused axis beats papering over its lowercase title.
+taxonomies:
+  tag: tags
 paginate: 10
 timeout: 60s
 module:
