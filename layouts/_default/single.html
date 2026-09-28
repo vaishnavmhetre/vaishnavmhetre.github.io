@@ -5,10 +5,37 @@
    anchored_headings, extend_post_content, share_icons, comments.
    Styles: assets/css/extended/single.css */ -}}
 {{- $section := .Section }}
-{{- $sectionPage := .CurrentSection }}
 {{- $hub := site.GetPage "/writing" }}
 {{- $hubURL := "/writing/" | relURL }}
 {{- if $hub }}{{ $hubURL = $hub.RelPermalink }}{{ end }}
+{{- /* BREADCRUMB ANCESTRY. .Section is a STRING -- empty for a root-level
+   page such as /about/, a section name otherwise. .CurrentSection is a Page
+   and silently resolves to the HOME page when .Section is empty, which is
+   what emitted the bogus "Home / Writing / <site title>" trail: it claimed
+   /about/ was a child of Writing and repeated Home as a second link to "/".
+   So the trail is gated on .Section, never on .CurrentSection.
+
+   The Writing hub crumb is data-driven rather than a slug list: it appears
+   only for a real, published section archive the hub can actually link to.
+   Kind "section" excludes taxonomy pages (/tags/<term>/), and a non-nil
+   File means an _index.md backs that section. A future typed section is
+   therefore picked up with no edit here, and a section the hub does not
+   list gets no false Writing parent.
+
+   The terminal crumb is the current location, so it carries
+   aria-current="page". It stays a link to the section archive (a genuine
+   ancestor, not the page you are on) and degrades to a non-link span for a
+   root-level page, which would otherwise link to itself. */ -}}
+{{- $inSection := ne $section "" }}
+{{- $sectionPage := cond $inSection .CurrentSection false }}
+{{- $terminalTitle := .Title }}
+{{- $terminalURL := "" }}
+{{- if $inSection }}
+{{- with $sectionPage }}
+{{- $terminalTitle = .Title }}
+{{- $terminalURL = .RelPermalink }}
+{{- end }}
+{{- end }}
 {{- $kind := "" }}
 {{- if eq .Section "case-studies" }}{{ $kind = "Case Study" }}{{ end }}
 {{- if eq .Section "posts" }}{{ $kind = "Post" }}{{ end }}
@@ -18,9 +45,15 @@
         <nav class="vm-crumbs" aria-label="Breadcrumb">
             <ol class="vm-crumbs-list">
                 <li class="vm-crumbs-item"><a class="vm-crumbs-link" href="{{ "" | relURL }}">Home</a></li>
+                {{- if $inSection }}
+                {{- if and (eq $sectionPage.Kind "section") $sectionPage.File }}
                 <li class="vm-crumbs-item"><a class="vm-crumbs-link" href="{{ $hubURL }}">Writing</a></li>
-                {{- with $sectionPage }}
-                <li class="vm-crumbs-item"><a class="vm-crumbs-link" href="{{ .RelPermalink }}">{{ .Title }}</a></li>
+                {{- end }}
+                {{- end }}
+                {{- if $terminalURL }}
+                <li class="vm-crumbs-item"><a class="vm-crumbs-link" href="{{ $terminalURL }}" aria-current="page">{{ $terminalTitle }}</a></li>
+                {{- else }}
+                <li class="vm-crumbs-item"><span class="vm-crumbs-link" aria-current="page">{{ $terminalTitle }}</span></li>
                 {{- end }}
             </ol>
         </nav>
