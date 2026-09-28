@@ -6,7 +6,6 @@ tags: [data-delivery, gcp]
 summary: "A case study about querying retail measurement data out of databases and delivering it as binary payloads through a delivery pipeline — filters, enrichments, and file handling at scale."
 hero: true
 showtoc: true
-diagrams: true
 ---
 
 ## The frame

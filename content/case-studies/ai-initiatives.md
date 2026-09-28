@@ -6,7 +6,6 @@ tags: [platform, event-driven]
 summary: "A case study about engineering the data and delivery foundations that AI-driven initiatives depend on — reusing the pipeline, not rebuilding bespoke paths."
 hero: true
 showtoc: true
-diagrams: true
 ---
 
 ## The frame

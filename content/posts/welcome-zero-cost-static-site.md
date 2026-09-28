@@ -6,7 +6,6 @@ tags: [hugo]
 summary: "A practical note on choosing GitHub Pages, GitHub Actions, and Hugo for a personal engineering site that stays inexpensive to run and easy to own."
 hero: true
 showtoc: true
-diagrams: true
 ---
 
 ## The constraints

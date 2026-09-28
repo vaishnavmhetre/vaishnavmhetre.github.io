@@ -84,6 +84,18 @@ DIAGRAMS = {
   ("build","Hugo build","rectangle","package"),("dep","Deploy to Pages","rectangle","server"),
   ("cdn","Served from CDN","cloud","storage")],
   edges=[("push","act"),("act","build"),("build","dep"),("dep","cdn")]),
+# The diagram pipeline itself, for the build writeup. Shapes stay in the same
+# vocabulary as everything else: rectangle for a process, cylinder for something
+# stored on disk. The middle two are where the non-obvious work happens — the
+# layout engine and the three post-processes that fix what it gets wrong.
+"07-diagram-pipeline": dict(dirn="down", nodes=[
+  ("md","Markdown","rectangle","save"),
+  ("gen","Generator","rectangle","cpu"),
+  ("d2","D2 layout","rectangle","sliders"),
+  ("fix","Three fixes","rectangle","shield"),
+  ("svg","Committed SVG","cylinder","storage"),
+  ("page","Static page","cloud","monitor")],
+  edges=[("md","gen"),("gen","d2"),("d2","fix"),("fix","svg"),("svg","page")]),
 }
 THEME={"light":dict(fill="#FFF3E4",stroke="#CE651B",ink="#241005",edge="#C24E0C",
                     icons="assets/icons/light",fs=20),

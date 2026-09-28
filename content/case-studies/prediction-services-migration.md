@@ -6,7 +6,6 @@ tags: [data-delivery, platform]
 summary: "A case study about supervising the migration of prediction services — such as a pricing forecast backend — onto a shared delivery pipeline, and making them robust."
 hero: true
 showtoc: true
-diagrams: true
 ---
 
 ## The frame
