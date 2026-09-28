@@ -1,0 +1,48 @@
+{{- /* Twitter card — slice 01 (SEO contract D6): twitter:image always
+       present; falls back to the site-wide /images/og-cover.png
+       (1200×630 → summary_large_image) when the page has no cover. */ -}}
+{{- if .Params.cover.image -}}
+<meta name="twitter:card" content="summary_large_image">
+{{- if (ne $.Params.cover.relative true) }}
+<meta name="twitter:image" content="{{ .Params.cover.image | absURL }}">
+{{- else }}
+<meta name="twitter:image" content="{{ (path.Join .RelPermalink .Params.cover.image ) | absURL }}">
+{{- end}}
+{{- else }}
+{{- $images := partial "templates/_funcs/get-page-images" . }}
+{{- with index $images 0 }}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="{{ .Permalink }}">
+{{- else }}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="{{ "images/og-cover.png" | absURL }}">
+{{- end }}
+{{- end }}
+
+{{- with or .Title site.Title site.Params.title | plainify }}
+  <meta name="twitter:title" content="{{ . }}">
+{{- end }}
+
+{{- $desc := .Description | default (.Summary | default "") | plainify | htmlUnescape | replaceRE `\s+` " " -}}
+{{- $desc = trim $desc " " | truncate 160 -}}
+{{- if not $desc -}}
+{{- if .IsHome -}}
+{{- $desc = site.Params.description | plainify | truncate 160 -}}
+{{- else -}}
+{{- $desc = printf "%s. %s" (.Title | plainify) site.Params.description | plainify | truncate 160 -}}
+{{- end -}}
+{{- end }}
+<meta name="twitter:description" content="{{ $desc }}">
+
+{{- $twitterSite := "" }}
+{{- with site.Params.social }}
+  {{- if reflect.IsMap . }}
+    {{- with .twitter }}
+      {{- $content := . }}
+      {{- if not (strings.HasPrefix . "@") }}
+        {{- $content = printf "@%v" . }}
+      {{- end }}
+      <meta name="twitter:site" content="{{ $content }}">
+    {{- end }}
+  {{- end }}
+{{- end }}

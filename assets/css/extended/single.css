@@ -1,0 +1,453 @@
+/* ============================================================================
+   SLICE 03 — SINGLE PAGES / READING SURFACES
+   (assets/css/extended/single.css)
+   ----------------------------------------------------------------------------
+   Styles for layouts/_default/single.html — the .vm-article shell shared by
+   /case-studies/<slug>/ and /posts/<slug>/.
+
+   CSS seam (contract): PaperMod concatenates every file in
+   assets/css/extended/ into one stylesheet, so this slice owns ONLY the rules
+   below. Alphabetical concat order puts single.css last, so these rules
+   override both PaperMod core (post-single.css / md-content.css) and
+   custom.css at equal specificity.
+
+   Token discipline: colors / fonts / sizes / motion via var(--vm-*) ONLY.
+   The handful of values this reading surface needs that custom.css has no
+   token for are declared once below as --vm-* custom properties and
+   composed from existing palette tokens — no hex literals, no new hues, no
+   webfonts, no @import / @font-face.
+   ============================================================================ */
+
+:root {
+    /* Prose measure for the single page: the reading column is centred in
+       PaperMod's 720px .main box, so ~68ch at the prose size is a proper
+       long-form measure (PaperMod's 720px at 18px would run ~90ch here). */
+    --vm-article-measure: 68ch;
+    /* Long-form reading size. --vm-text-body (14px) is the design system's
+       UI/label scale; prose needs a step up from it, so the reading surface
+       declares its own instead of borrowing a heading token. */
+    --vm-article-prose: 1rem;
+    --vm-article-lede: 1.125rem;
+    --vm-article-heading-sm: 1.0625rem;
+    /* Code surface: --vm-espresso is the one dark palette token that does NOT
+       flip in the light theme, so a block stays dark in both themes — which is
+       what chroma's monokai classes are tuned for. Syntax token colours are
+       never touched. */
+    --vm-article-code-bg: var(--vm-espresso);
+    --vm-article-code-line: var(--vm-line-soft);
+    /* Theme-adaptive accent for links: peach on espresso, deep orange on
+       ivory (AA in both). */
+    --vm-article-link: var(--vm-peach-italic);
+}
+
+/* ============================================================
+   SHELL
+   ============================================================ */
+.vm-article {
+    max-width: var(--vm-article-measure);
+    margin-inline: auto;
+    padding-block: var(--vm-space-8) var(--vm-space-section);
+    font-family: var(--vm-font-sans);
+    font-size: var(--vm-text-body);
+    line-height: var(--vm-leading-body);
+    color: var(--vm-body-text);
+}
+
+.vm-article-head>* {
+    min-width: 0;
+}
+
+/* ============================================================
+   BREADCRUMBS — Home / Writing / section
+   ============================================================ */
+.vm-crumbs-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--vm-space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--vm-text-xs);
+}
+
+.vm-crumbs-item+.vm-crumbs-item::before {
+    content: "/";
+    margin-inline-end: var(--vm-space-2);
+    color: var(--vm-muted-70);
+}
+
+.vm-crumbs-link {
+    color: var(--vm-muted-70);
+    text-decoration: none;
+    transition: color var(--vm-dur-fast) var(--vm-ease-out);
+}
+
+.vm-crumbs-link:hover,
+.vm-crumbs-link:focus-visible {
+    color: var(--vm-accent);
+}
+
+/* ============================================================
+   HEAD — type eyebrow, title, lede, meta, tags
+   ============================================================ */
+.vm-article .vm-article-kind {
+    margin: var(--vm-space-5) 0 0;
+    color: var(--vm-eyebrow);
+}
+
+.vm-article-title {
+    margin: var(--vm-space-2) 0 0;
+    font-family: var(--vm-font-sans);
+    font-weight: 800;
+    font-size: var(--vm-text-h2);
+    line-height: var(--vm-leading-h1);
+    letter-spacing: var(--vm-tracking-h1);
+    color: var(--vm-cream);
+    overflow-wrap: anywhere;
+}
+
+.vm-article-lede {
+    margin: var(--vm-space-4) 0 0;
+    max-width: var(--vm-measure);
+    font-size: var(--vm-article-lede);
+    line-height: var(--vm-leading-snug);
+    color: var(--vm-body-text);
+}
+
+.vm-article .vm-article-meta {
+    margin-top: var(--vm-space-4);
+    font-size: var(--vm-text-xs);
+    line-height: var(--vm-leading-snug);
+    color: var(--vm-muted-70);
+}
+
+.vm-article .vm-article-meta a {
+    color: var(--vm-muted-70);
+    text-decoration-style: dotted;
+    text-underline-offset: 0.2em;
+}
+
+.vm-article-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--vm-space-2);
+    margin: var(--vm-space-4) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.vm-article-tags .vm-pill {
+    text-decoration: none;
+    transition: color var(--vm-dur-fast) var(--vm-ease-out),
+        border-color var(--vm-dur-fast) var(--vm-ease-out);
+}
+
+.vm-article-tags .vm-pill:hover,
+.vm-article-tags .vm-pill:focus-visible {
+    color: var(--vm-accent);
+    border-color: var(--vm-accent);
+}
+
+/* ============================================================
+   PROSE
+   ============================================================ */
+.vm-article .vm-article-body {
+    margin-top: var(--vm-space-7);
+    font-size: var(--vm-article-prose);
+    line-height: var(--vm-leading-body);
+    color: var(--vm-body-text);
+}
+
+.vm-article .vm-article-body strong {
+    color: var(--vm-cream);
+    font-weight: 600;
+}
+
+.vm-article .vm-article-body h2,
+.vm-article .vm-article-body h3,
+.vm-article .vm-article-body h4 {
+    font-family: var(--vm-font-sans);
+    color: var(--vm-cream);
+    overflow-wrap: anywhere;
+}
+
+/* Editorial section rule: DESIGN-DNA separates entries with rules. */
+.vm-article .vm-article-body h2 {
+    margin: var(--vm-space-8) 0 var(--vm-space-4);
+    padding-top: var(--vm-space-5);
+    border-top: 1px solid var(--vm-line-hair);
+    font-size: var(--vm-text-h3);
+    font-weight: 700;
+    line-height: var(--vm-leading-snug);
+    letter-spacing: var(--vm-tracking-h1);
+}
+
+.vm-article .vm-article-body h3 {
+    margin: var(--vm-space-6) 0 var(--vm-space-2);
+    font-size: var(--vm-article-heading-sm);
+    font-weight: 600;
+    line-height: var(--vm-leading-snug);
+}
+
+.vm-article .vm-article-body h4 {
+    margin: var(--vm-space-5) 0 var(--vm-space-2);
+    font-size: var(--vm-text-body);
+    font-weight: 600;
+    letter-spacing: var(--vm-tracking-eyebrow);
+    text-transform: uppercase;
+    color: var(--vm-eyebrow);
+}
+
+.vm-article .vm-article-body a:not(.anchor) {
+    color: var(--vm-cream);
+    text-decoration: underline;
+    text-decoration-color: var(--vm-accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    transition: color var(--vm-dur-fast) var(--vm-ease-out);
+}
+
+.vm-article .vm-article-body a:not(.anchor):hover,
+.vm-article .vm-article-body a:not(.anchor):focus-visible {
+    color: var(--vm-article-link);
+}
+
+.vm-article .vm-article-body blockquote {
+    margin: var(--vm-space-5) 0;
+    padding-inline-start: var(--vm-space-4);
+    border-inline-start: 2px solid var(--vm-accent);
+    color: var(--vm-muted-70);
+    font-style: italic;
+}
+
+.vm-article .vm-article-body li {
+    color: var(--vm-body-text);
+}
+
+/* ============================================================
+   CODE — chroma classes are never overridden, only the shell
+   around them (PaperMod forces --code-block-bg with !important, so the
+   override needs the same weight and a higher-specificity selector).
+   ============================================================ */
+.vm-article .vm-article-body .highlight:not(table) {
+    background: var(--vm-article-code-bg) !important;
+    border: 1px solid var(--vm-article-code-line);
+    border-radius: var(--vm-radius-card);
+}
+
+.vm-article .vm-article-body pre.chroma {
+    margin: 0;
+    border-radius: var(--vm-radius-card);
+    font-family: var(--vm-font-mono);
+    font-size: var(--vm-text-sm);
+    line-height: var(--vm-leading-snug);
+}
+
+.vm-article .vm-article-body pre.chroma code,
+.vm-article .vm-article-body .highlight pre.chroma code {
+    background: var(--vm-article-code-bg) !important;
+}
+
+/* `lineNos: true` (hugo.yaml) makes Chroma wrap the block in a two-cell
+   table.lntable — gutter + code — instead of a bare <pre>. Neither PaperMod
+   nor custom.css styles .lntable/.lntd, so the table's own default
+   background/border shows through the shell. Reset it here and let the two
+   cells carry the espresso surface. Colors are deliberately left alone:
+   monokai's .lnt and token colors are already legible on espresso in BOTH
+   themes, and re-coloring them would break the "syntax classes intact" rule. */
+.vm-article .vm-article-body .highlight table.lntable {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-collapse: collapse;
+    background: var(--vm-article-code-bg);
+}
+
+.vm-article .vm-article-body .lntable td.lntd {
+    padding: 0;
+    border: 0;
+    background: var(--vm-article-code-bg);
+    vertical-align: top;
+}
+
+/* Scoped to the line-numbers case so the plain <pre> copy button is untouched. */
+.vm-article .vm-article-body .highlight:has(table.lntable) {
+    overflow: hidden;
+}
+
+.vm-article .vm-article-body .lnt {
+    user-select: none;
+}
+
+/* Inline code only — :not(pre) keeps the block rules above in charge.
+   --vm-card-dark is a theme-adaptive surface (dark glass / ivory glass), so
+   the inherited cream/espresso text stays legible in both themes. */
+.vm-article .vm-article-body :not(pre)>code {
+    background: var(--vm-card-dark);
+    color: inherit;
+    border-radius: var(--vm-radius-img);
+}
+
+/* PaperMod's copy-code button (injected by the footer script) — keep the
+   primitive, give it the design system's shape and type. */
+.vm-article .copy-code {
+    border-radius: var(--vm-radius-pill);
+    font-family: var(--vm-font-sans);
+    font-size: var(--vm-text-2xs);
+    letter-spacing: var(--vm-tracking-eyebrow);
+    text-transform: uppercase;
+}
+
+/* ============================================================
+   TOC (gated by the showtoc param) — PaperMod primitive, restyled
+   ============================================================ */
+.vm-article details.toc {
+    margin-top: var(--vm-space-7);
+    background: var(--vm-card-dark);
+    border: 1px solid var(--vm-card-line-soft);
+    border-radius: var(--vm-radius-card);
+}
+
+.vm-article details.toc summary {
+    padding: var(--vm-space-3) var(--vm-space-4);
+}
+
+.vm-article details.toc .title {
+    font-size: var(--vm-text-2xs);
+    font-weight: 600;
+    letter-spacing: var(--vm-tracking-eyebrow);
+    text-transform: uppercase;
+    color: var(--vm-eyebrow);
+}
+
+.vm-article details.toc .inner {
+    margin: 0 var(--vm-space-4);
+    padding-bottom: var(--vm-space-3);
+    font-size: var(--vm-text-sm);
+}
+
+.vm-article details.toc a {
+    color: var(--vm-body-text);
+    text-decoration: none;
+    transition: color var(--vm-dur-fast) var(--vm-ease-out);
+}
+
+.vm-article details.toc a:hover,
+.vm-article details.toc a:focus-visible {
+    color: var(--vm-accent);
+}
+
+/* ============================================================
+   PREV / NEXT
+   ============================================================ */
+.vm-article-foot {
+    margin-top: var(--vm-space-8);
+}
+
+.vm-pagenav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--vm-space-3);
+}
+
+.vm-pagenav-link {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: var(--vm-space-2);
+    min-width: 0;
+    padding: var(--vm-space-4);
+    background: var(--vm-card-dark);
+    border: 1px solid var(--vm-card-line-soft);
+    border-radius: var(--vm-radius-card);
+    text-decoration: none;
+    transition: border-color var(--vm-dur-fast) var(--vm-ease-out),
+        transform var(--vm-dur-fast) var(--vm-ease-out);
+}
+
+.vm-pagenav-link--next {
+    text-align: end;
+}
+
+.vm-pagenav-label {
+    font-size: var(--vm-text-2xs);
+    font-weight: 600;
+    letter-spacing: var(--vm-tracking-eyebrow);
+    text-transform: uppercase;
+    color: var(--vm-eyebrow);
+}
+
+.vm-pagenav-title {
+    font-size: var(--vm-text-body);
+    font-weight: 600;
+    color: var(--vm-cream);
+    overflow-wrap: anywhere;
+    transition: color var(--vm-dur-fast) var(--vm-ease-out);
+}
+
+.vm-pagenav-link:hover,
+.vm-pagenav-link:focus-visible {
+    border-color: var(--vm-accent);
+}
+
+.vm-pagenav-link:hover .vm-pagenav-title,
+.vm-pagenav-link:focus-visible .vm-pagenav-title {
+    color: var(--vm-accent);
+}
+
+/* ============================================================
+   MOTION — staggered head entry, hover lift (no-preference only;
+   vm-fade-up keyframes come from custom.css)
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+    .vm-article-head>* {
+        animation: vm-fade-up var(--vm-dur-slow) var(--vm-ease-out) backwards;
+    }
+
+    .vm-article-head>*:nth-child(1) {
+        animation-delay: 0ms;
+    }
+
+    .vm-article-head>*:nth-child(2) {
+        animation-delay: var(--vm-stagger);
+    }
+
+    .vm-article-head>*:nth-child(3) {
+        animation-delay: calc(2 * var(--vm-stagger));
+    }
+
+    .vm-article-head>*:nth-child(4) {
+        animation-delay: calc(3 * var(--vm-stagger));
+    }
+
+    .vm-article-head>*:nth-child(5) {
+        animation-delay: calc(4 * var(--vm-stagger));
+    }
+
+    .vm-article-head>*:nth-child(6) {
+        animation-delay: calc(5 * var(--vm-stagger));
+    }
+
+    .vm-pagenav-link:hover,
+    .vm-pagenav-link:focus-visible {
+        transform: translateY(-2px);
+    }
+}
+
+/* ============================================================
+   NARROW
+   ============================================================ */
+@media (max-width: 640px) {
+    .vm-article {
+        padding-block: var(--vm-space-7) var(--vm-space-8);
+    }
+
+    .vm-pagenav-link {
+        flex: 1 1 100%;
+    }
+
+    .vm-pagenav-link--next {
+        text-align: start;
+    }
+}

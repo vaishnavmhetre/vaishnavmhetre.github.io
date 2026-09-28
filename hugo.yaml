@@ -1,9 +1,20 @@
 baseURL: "https://vaishnavmhetre.github.io/"
-languageCode: "en-us"
+locale: en-US
 title: "Vaishnav Mhetre"
 theme: ["github.com/adityatelange/hugo-PaperMod"]
 enableRobotsTXT: true
 enableEmoji: true
+# The approved tag vocabulary is lowercase kebab (data-delivery, gcp). Hugo
+# title-cases generated titles by default, which rendered terms as
+# "Data-Delivery" / "Gcp" in /tags/, on /tags/<term>/, and in every
+# <title>/og/twitter/JSON-LD value head.html derives from .Title. `none` keeps
+# generated titles verbatim, so a term name IS the vocabulary everywhere.
+titleCaseStyle: none
+# Hugo's DEFAULT taxonomy set adds `categories`: an empty page no content file
+# uses and nothing links to, while the contract's URL table lists /tags/ only.
+# Dropping the unused axis beats papering over its lowercase title.
+taxonomies:
+  tag: tags
 paginate: 10
 timeout: 60s
 module:
@@ -11,6 +22,11 @@ module:
     - path: github.com/adityatelange/hugo-PaperMod
 params:
   env: production
+  # Slice 05 tag axis (contract D5): a tag term needs this many entries to be
+  # worth indexing, listing in the sitemap, and rendering as a pill. One
+  # threshold, read by head.html (noindex), entry-card.html (pills) and
+  # _default/sitemap.xml (sitemap) — change it here, not in the templates.
+  minTagEntries: 2
   title: "Vaishnav Mhetre — Platform Engineer & Data Engineer"
   description: "Binary data delivery, event-driven systems, and microservices on GCP — engineer-facing portfolio and blog."
   keywords: ["Java", "TypeScript", "Node.js", "GCP", "Spring Boot", "Kafka", "event-driven", "microservices", "binary data delivery", "motor insurance", "market data"]
@@ -45,22 +61,18 @@ params:
     hiddenInSingle: true
 menu:
   main:
+    - identifier: writing
+      name: Writing
+      url: /writing/
+      weight: 10
     - identifier: about
       name: About
       url: /about/
-      weight: 10
-    - identifier: case-studies
-      name: Case Studies
-      url: /case-studies/
       weight: 20
-    - identifier: posts
-      name: Blog
-      url: /posts/
-      weight: 30
     - identifier: tags
       name: Tags
       url: /tags/
-      weight: 40
+      weight: 30
 markup:
   highlight:
     noClasses: false

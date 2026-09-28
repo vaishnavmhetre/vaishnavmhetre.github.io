@@ -2,7 +2,7 @@
 title: "Migrating prediction services onto the delivery pipeline"
 date: 2026-09-24
 draft: false
-tags: [migration, prediction, reliability]
+tags: [data-delivery, platform]
 summary: "A case study about supervising the migration of prediction services — such as a pricing forecast backend — onto a shared delivery pipeline, and making them robust."
 ---
 

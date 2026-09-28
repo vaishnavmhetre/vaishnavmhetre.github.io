@@ -1,0 +1,207 @@
+/* ============================================================================
+   SLICE 04 — HOMEPAGE LANDING (assets/css/extended/home.css)
+   ----------------------------------------------------------------------------
+   The CSS seam from the slice contract: PaperMod concatenates every file in
+   assets/css/extended/ into one stylesheet (alphabetical, so this lands after
+   custom.css). Slice 04 owns ONLY the rules below — never edit another
+   slice's file.
+
+   Scope: the two beats that exist only on the landing page — the proof strip
+   and the entry-point cards. The hero, profile card, ticker, stat duo, buttons
+   and section primitives are DESIGN-DNA rules in custom.css and are reused
+   here as-is, so the signature moments (serif-italic accent word, light/dark
+   stat duo, availability badge, dual CTA, orange-dot ticker) all survive the
+   homepage trim.
+
+   Token discipline: colors/fonts/sizes via var(--vm-*) ONLY. No hex literals,
+   no webfonts, no @import, every class .vm- prefixed. .vm-door* is
+   deliberately NOT the .vm-entry* namespace slice 02 owns for archive cards.
+
+   Motion: hover/focus state only (transform, border-color, color), gated on
+   prefers-reduced-motion: no-preference. No load-time or scroll-time reveal —
+   the entry points sit below the fold, so an entrance animation would either
+   never play or need JavaScript. Restraint over spectacle.
+   ============================================================================ */
+
+/* ============================================================
+   PROOF STRIP — stat duo widened to the container
+   ============================================================ */
+
+/* Hairline seam where the hero gradient (which ends on the page background)
+   hands off to the page sections. .vm-section+.vm-section already draws the
+   rule between later sections, so only the first one needs it. */
+.vm-proof {
+    border-top: 1px solid var(--vm-line-hair);
+}
+
+/* custom.css sizes .vm-stats for the hero (max-width 420px, 2-up). On its own
+   section the duo should breathe across the container, so it stays a duo —
+   light card next to dark card, never two of the same. */
+.vm-proof .vm-stats {
+    max-width: none;
+}
+
+/* The counts, spelled out. Quieter than the stat cards on purpose: it is the
+   receipt, not another headline. */
+.vm-proof-note {
+    margin: var(--vm-space-5) 0 0;
+    max-width: var(--vm-measure);
+    font-size: var(--vm-text-body);
+    line-height: var(--vm-leading-body);
+    color: var(--vm-muted-70);
+}
+
+/* ============================================================
+   ENTRY POINTS — two front-door cards
+   ============================================================ */
+
+.vm-doors {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--vm-space-4);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Same glass material as the profile / case cards in custom.css, so the cards
+   read as one family rather than a new component. */
+.vm-door {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--vm-space-3);
+    min-width: 0;
+    padding: var(--vm-space-6);
+    background: var(--vm-card-dark);
+    border: 1px solid var(--vm-card-line-soft);
+    border-radius: var(--vm-radius-card-lg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--vm-shadow-card);
+}
+
+.vm-door-eyebrow {
+    margin: 0;
+    font-size: var(--vm-text-2xs);
+    font-weight: 600;
+    letter-spacing: var(--vm-tracking-eyebrow);
+    text-transform: uppercase;
+    color: var(--vm-card-eyebrow);
+}
+
+.vm-door-title {
+    margin: 0;
+    font-size: var(--vm-text-h3);
+    font-weight: 800;
+    line-height: var(--vm-leading-snug);
+    letter-spacing: var(--vm-tracking-h1);
+    color: var(--vm-card-ink);
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.vm-door-title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Stretched link: the whole card becomes the hit target while focus stays on
+   the single title anchor (no nested interactive elements in the card). */
+.vm-door-title a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+}
+
+.vm-door-body {
+    margin: 0;
+    font-size: var(--vm-text-body);
+    line-height: var(--vm-leading-body);
+    color: var(--vm-card-body);
+    max-width: var(--vm-measure);
+}
+
+.vm-door-meta {
+    margin: 0;
+    font-size: var(--vm-text-xs);
+    line-height: var(--vm-leading-snug);
+    color: var(--vm-card-muted);
+}
+
+/* Typographic CTA, matching the .vm-case-cta voice in custom.css. */
+.vm-door-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--vm-space-2);
+    margin-top: auto;
+    padding-top: var(--vm-space-2);
+    font-size: var(--vm-text-sm);
+    font-weight: 600;
+    color: var(--vm-card-accent);
+}
+
+/* Quiet signpost under the cards — real routes only, no invented contact. */
+.vm-elsewhere {
+    margin: var(--vm-space-6) 0 0;
+    max-width: var(--vm-measure);
+    font-size: var(--vm-text-body);
+    line-height: var(--vm-leading-body);
+    color: var(--vm-muted-70);
+}
+
+/* ============================================================
+   MOTION — hover / focus only, transform + color, no layout
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+
+    .vm-door {
+        transition:
+            border-color var(--vm-dur-base) var(--vm-ease-out),
+            transform var(--vm-dur-base) var(--vm-ease-out);
+    }
+
+    .vm-door:hover,
+    .vm-door:focus-within {
+        border-color: var(--vm-card-line-strong);
+        transform: translateY(-2px);
+    }
+
+    .vm-door-title a {
+        transition: color var(--vm-dur-fast) var(--vm-ease-out);
+    }
+
+    .vm-door:hover .vm-door-title a,
+    .vm-door:focus-within .vm-door-title a {
+        color: var(--vm-card-accent);
+    }
+
+    .vm-door-cta span {
+        transition: transform var(--vm-dur-base) var(--vm-ease-out);
+    }
+
+    .vm-door:hover .vm-door-cta span,
+    .vm-door:focus-within .vm-door-cta span {
+        transform: translateX(4px);
+    }
+}
+
+/* ============================================================
+   RESPONSIVE — 320 / 375 / 414 / 768
+   ============================================================ */
+@media (max-width: 900px) {
+    .vm-doors {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .vm-proof .vm-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .vm-door {
+        padding: var(--vm-space-5);
+    }
+}

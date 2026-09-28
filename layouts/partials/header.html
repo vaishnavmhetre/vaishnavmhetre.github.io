@@ -1,0 +1,39 @@
+{{- /* Slice 01 (ADR 0008) — global chrome header. Owns `.vm-topbar` on every
+       page: logo · menu.main (Writing · About · Tags) · theme toggle ·
+       CSS-only mobile disclosure. Replaces both PaperMod's .header and the
+       homepage's former inline topbar. Theme toggle is the .vm-theme-toggle
+       button driven by the delegated script in extend_head.html (writes the
+       same localStorage "pref-theme" key PaperMod reads). */ -}}
+<header class="vm-topbar">
+    <div class="vm-wrap vm-topbar-inner">
+        <a class="vm-logo" href="{{ "" | relURL }}" aria-label="{{ site.Title }} — home">
+            <span class="vm-logo-mark" aria-hidden="true">VM</span>
+            <span class="vm-logo-name">{{ site.Title }}</span>
+        </a>
+
+        <nav class="vm-nav" aria-label="Primary">
+            {{- range site.Menus.main }}
+            {{- $item := strings.TrimSuffix "/" .URL }}
+            {{- $here := strings.TrimSuffix "/" $.RelPermalink }}
+            <a href="{{ .URL | relLangURL }}"{{ if eq $item $here }} aria-current="page"{{ end }}>{{ .Name }}</a>
+            {{- end }}
+        </nav>
+
+        <button type="button" class="vm-theme-toggle" aria-label="Switch to light or dark theme">
+            <span class="vm-toggle-icon vm-toggle-sun" aria-hidden="true">☀︎</span>
+            <span class="vm-toggle-icon vm-toggle-moon" aria-hidden="true">☾︎</span>
+        </button>
+
+        {{- /* CSS-only mobile disclosure (no JS). */ -}}
+        <details class="vm-navmenu">
+            <summary aria-label="Open menu"><span class="vm-burger" aria-hidden="true"></span></summary>
+            <nav class="vm-navmenu-panel" aria-label="Primary mobile">
+                {{- range site.Menus.main }}
+                {{- $item := strings.TrimSuffix "/" .URL }}
+                {{- $here := strings.TrimSuffix "/" $.RelPermalink }}
+                <a href="{{ .URL | relLangURL }}"{{ if eq $item $here }} aria-current="page"{{ end }}>{{ .Name }}</a>
+                {{- end }}
+            </nav>
+        </details>
+    </div>
+</header>

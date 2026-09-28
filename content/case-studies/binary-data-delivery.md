@@ -2,7 +2,7 @@
 title: "Binary data delivery for retail measurement"
 date: 2026-09-24
 draft: false
-tags: [data-delivery, retail-measurement, gcp]
+tags: [data-delivery, gcp]
 summary: "A case study about querying retail measurement data out of databases and delivering it as binary payloads through a delivery pipeline — filters, enrichments, and file handling at scale."
 ---
 
