@@ -574,28 +574,6 @@ html[data-theme="light"] {
     border-radius: var(--vm-radius-card);
 }
 
-/* Mermaid swaps the <pre>'s text for an <svg>. `display: block` is
-   what stops the drawing from riding the text baseline (and leaking
-   the descender gap a `pre` reserves); auto margins then centre it.
-   `overflow-x` is a backstop, not the mechanism: Mermaid writes an
-   inline max-width onto the svg (its useMaxWidth default) and an
-   inline style outranks any rule in this file, so the honest options
-   are "scroll inside the figure" or "break the layout". Scrolling
-   is the one that keeps the 68ch measure intact. */
-.vm-article .vm-article-body .vm-figure--diagram .vm-mermaid {
-    display: block;
-    margin: 0;
-    overflow-x: auto;
-    text-align: center;
-}
-
-.vm-article .vm-article-body .vm-figure--diagram .vm-mermaid svg {
-    display: block;
-    max-width: 100%;
-    height: auto;
-    margin-inline: auto;
-}
-
 .vm-article .vm-article-body .vm-figure figcaption {
     margin-top: var(--vm-space-4);
     font-family: var(--vm-font-sans);
@@ -606,23 +584,56 @@ html[data-theme="light"] {
 }
 
 /* ============================================================
-   DIAGRAM ICONS — a node label marked `@name ` has the marker replaced
-   by an inline <svg> by the loader (see DIAGRAM ICONS in
-   layouts/partials/head.html). The label becomes a flex row so the glyph
-   and the text align on one line and a long label wraps under the text
-   rather than under the icon.
+   D2 DIAGRAM — the shell layouts/shortcodes/diagram.html emits.
+
+   The shortcode renders BOTH themes and this block shows one.
+   Keyed on html[data-theme], NOT prefers-color-scheme: the site
+   toggle is a manual choice persisted in localStorage under
+   "pref-theme", so a media query would render the wrong theme for
+   anyone who has overridden their OS setting. A <picture> element
+   would have the identical flaw, which is why both themes ship as
+   <img> siblings instead.
+
+   Default is LIGHT (the dark rule is display:none with no matching
+   override), so the figure is correct even if `data-theme` has not
+   been applied yet. PaperMod's inline script sets the attribute
+   before paint, so the dark rule wins on a dark site.
+
+   Both <img> are in the DOM and both are fetched; the hidden one is
+   ~10KB. That is the deliberate cost of a zero-JS theme swap, and it
+   is why the SVGs have their icons inlined (an <img>-loaded SVG
+   cannot fetch siblings — see build.py).
+
+   Portrait diagrams (02 and 04 are ~0.24 aspect — taller than wide)
+   are taller than the article measure allows at full size, so
+   overflow-x scrolls rather than shrinking them into illegibility.
+   Scrolling keeps the 68ch measure intact; the alternative breaks
+   the layout. This mirrors the tradeoff the old Mermaid rule made.
    ============================================================ */
-.vm-article .vm-article-body .vm-diagram-iconlabel {
+.vm-article .vm-article-body .vm-figure--diagram .vm-diagram {
     display: flex;
-    align-items: center;
-    gap: 0.4em;
-    text-align: left;
+    justify-content: center;
+    overflow-x: auto;
+    text-align: center;
 }
 
-.vm-article .vm-article-body .vm-diagram-icon {
-    flex: none;
-    width: 1.15em;
-    height: 1.15em;
+.vm-article .vm-article-body .vm-figure--diagram .vm-diagram__img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
+}
+
+/* Dark is the hidden default; see the block comment above. */
+.vm-article .vm-article-body .vm-figure--diagram .vm-diagram__img--dark {
+    display: none;
+}
+
+html[data-theme="dark"] .vm-article .vm-article-body .vm-figure--diagram .vm-diagram__img--light {
+    display: none;
+}
+
+html[data-theme="dark"] .vm-article .vm-article-body .vm-figure--diagram .vm-diagram__img--dark {
     display: block;
 }
 

@@ -27,13 +27,7 @@ The free tier is enough for a site of this size. GitHub Pages provides the publi
 
 The whole path from a text edit to a live page is four steps, and it is the same on every push.
 
-{{< mermaid caption="Push to main, and the deployed artifact is a directory of files. Nothing else runs." >}}
-flowchart TB
-  A["@doc Push to main"] --> B["@work GitHub Actions"]
-  B --> C["@step Hugo build"]
-  C --> D["@server Deploy to Pages"]
-  D --> E["@client Served from CDN"]
-{{< /mermaid >}}
+{{< diagram name="06-build-pipeline" alt="A push to main triggers a GitHub Actions run, which runs the Hugo build, deploys the output to GitHub Pages, and the pages are then served to readers from the CDN." caption="Push to main, and the deployed artifact is a directory of files. Nothing else runs." >}}
 
 Here is the shape of the workflow that does it — an excerpt from the actual file in this repository, with the favicon and search steps left out, and with the lines that use GitHub Actions' double-brace expression syntax omitted:
 

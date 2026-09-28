@@ -15,21 +15,7 @@ Prediction services — such as a pricing forecast backend — need data to make
 
 The frame for the work was consolidation. Prediction services should not each reinvent how they get data. They should sit on the shared delivery pipeline, inherit its guarantees, and spend their effort on the prediction itself.
 
-{{< mermaid caption="Before: every service owns a path. After: the pipeline owns the path." >}}
-flowchart TB
-  subgraph before["Before — bespoke per service"]
-    S1["@client Forecast service"] --> Q1["@work Own query"]
-    Q1 --> R1[Own retry handling]
-    R1 --> X1[("@db Direct database reads")]
-  end
-  subgraph after["After — shared pipeline"]
-    S2["@client Forecast service"] --> C["@doc Delivery subscription"]
-    C --> P["@work Shared pipeline"]
-    P --> O[("@store Object storage")]
-    O --> S2
-  end
-  X1 -.->|migrated to| C
-{{< /mermaid >}}
+{{< diagram name="04-before-after" alt="Before, the forecast service owns its query, its retries, and its direct database reads. After, the service holds a delivery subscription and reads from a shared pipeline that writes to object storage, so the path belongs to the pipeline instead of to each service." caption="Before: every service owns a path. After: the pipeline owns the path." >}}
 
 ## The data contract first
 
@@ -82,16 +68,7 @@ The contrast with the previous version is the point. There is no query, no conne
 
 The migration was not a lift-and-shift. Each service moved through explicit states, and the rollback path was designed before the cutover rather than after.
 
-{{< mermaid caption="Shadow first, and rollback stays a flag until the fallback window closes." >}}
-stateDiagram-v2
-  [*] --> Bespoke
-  Bespoke --> Shadowed: run both, compare
-  Shadowed --> DualRead: pipeline wins
-  DualRead --> PipelineOnly: window closes
-  PipelineOnly --> [*]
-  Shadowed --> Bespoke: outputs disagree
-  DualRead --> Bespoke: pipeline incident
-{{< /mermaid >}}
+{{< diagram name="05-cutover" alt="The bespoke path runs first. Both paths then run side by side and their outputs are compared. Once the pipeline's outputs win it becomes authoritative, and the last step is the fallback window closing, after which only the pipeline remains." caption="Shadow first, and rollback stays a flag until the fallback window closes." >}}
 
 Two decisions in that sequence are the ones I would keep:
 

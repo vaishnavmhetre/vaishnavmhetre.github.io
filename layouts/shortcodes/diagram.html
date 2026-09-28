@@ -1,0 +1,75 @@
+{{- /* D2 DIAGRAM — the only correct way to get a figure into this site.
+
+   The diagrams are rendered to static SVG at BUILD time by
+   scripts/diagrams/build.py (see that file's module docstring) and committed
+   to assets/diagrams/. Hugo does not run D2; it just reads the files off disk.
+   Output is a plain <img>, so there is no diagram JavaScript and no CDN.
+
+   Public API for content:
+     {{< diagram name="01-ai-pipeline" alt="One spine, two payloads." caption="Optional caption." >}}
+
+   The SVG is drawn to EXACTLY the geometry of its theme, and each theme is a
+   separate file. So this emits both variants and lets CSS show one: the choice
+   is keyed on html[data-theme] (the site toggle, persisted in localStorage),
+   NOT prefers-color-scheme, which would ignore a manual choice. That is also
+   why a <picture> element is not used — same flaw.
+
+   D2 is the source of truth for node labels. `name` must match a stem in
+   build.py's DIAGRAMS dict; the errorf below is what catches a rename.
+
+   `alt` is REQUIRED and is a description of the FLOW, not the caption repeated
+   and not a list of node names. Exactly one of the two <img> is displayed at a
+   time, and the light one is the default-visible one, so the light <img> is the
+   accessible one and the dark one is hidden from assistive tech. Getting this
+   backwards would announce an empty alt on the visible image.
+
+   Missing assets FAIL THE BUILD via errorf. A figure that silently renders as
+   an empty box is the failure mode this repo has been bitten by before.
+
+   Escaping: htmlEscape | safeHTML, for the reason documented at length in
+   mermaid.html — the template layer already applies one round of contextual
+   escaping, so a second explicit round double-escapes, and safeHTML alone would
+   assert "already safe" for author-supplied text that is not. Always exactly
+   one escape.
+
+   Block level: invoke on its own line. Hugo splices block shortcode output as a
+   sibling of the surrounding <p> elements; mid-paragraph the <figure> would
+   nest inside a <p>, which is invalid. */ -}}
+{{- $name := .Get "name" | default "" -}}
+{{- $alt := .Get "alt" | default "" -}}
+{{- $caption := .Get "caption" | default "" -}}
+{{- if not $name -}}
+  {{- errorf "diagram shortcode: `name` is required at %s — expected {{%% diagram name=\"NN-diagram-name\" alt=\"…\" %%}}" .Position -}}
+{{- end -}}
+{{- if not $alt -}}
+  {{- errorf "diagram shortcode: `alt` is required for diagram %q at %s — alt must describe the flow, not repeat the caption. Screen-reader users get nothing from a decorative image." $name .Position -}}
+{{- end -}}
+{{- $light := resources.Get (printf "diagrams/%s.light.svg" $name) -}}
+{{- $dark := resources.Get (printf "diagrams/%s.dark.svg" $name) -}}
+{{- if not $light -}}
+  {{- errorf "diagram shortcode: missing assets/diagrams/%s.light.svg for diagram %q at %s — run `python3 scripts/diagrams/build.py` from the repo root, or check the `name` matches build.py's DIAGRAMS dict." $name $name .Position -}}
+{{- end -}}
+{{- if not $dark -}}
+  {{- errorf "diagram shortcode: missing assets/diagrams/%s.dark.svg for diagram %q at %s — every diagram needs BOTH themes; run `python3 scripts/diagrams/build.py` from the repo root." $name $name .Position -}}
+{{- end -}}
+{{- /* Intrinsic size from the viewBox, so width/height are reserved and the
+       page does not shift as images arrive. Read via .Content rather than a
+       hardcoded guess so a regenerated diagram that changes size stays
+       correct without editing this file. */ -}}
+{{- $vb := index ($light.Content | findRE "viewBox=\"[^\"]+\"") 0 -}}
+{{- $dims := slice -}}
+{{- with $vb -}}
+  {{- $parts := split . " " -}}
+  {{- if eq (len $parts) 4 -}}
+    {{- $dims = slice (index $parts 2) (index $parts 3) -}}
+  {{- end -}}
+{{- end -}}
+<figure class="vm-figure vm-figure--diagram">
+<div class="vm-diagram">
+<img class="vm-diagram__img vm-diagram__img--light" src="{{ $light.RelPermalink }}" alt="{{ $alt | htmlEscape | safeHTML }}"{{ with $dims }} width="{{ index . 0 }}" height="{{ index . 1 }}"{{ end }} loading="lazy" decoding="async">
+<img class="vm-diagram__img vm-diagram__img--dark" src="{{ $dark.RelPermalink }}" alt="" aria-hidden="true"{{ with $dims }} width="{{ index . 0 }}" height="{{ index . 1 }}"{{ end }} loading="lazy" decoding="async">
+</div>
+{{- with $caption }}
+<figcaption>{{ . | htmlEscape | safeHTML }}</figcaption>
+{{- end }}
+</figure>

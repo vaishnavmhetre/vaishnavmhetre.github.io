@@ -15,15 +15,7 @@ At NielsenIQ, the core job is taking retail measurement data — POS transaction
 
 The design question was never "how do we produce the file". It was "how do we get data from the database, through the processing chain, and out to consumers without the pipeline becoming the bottleneck".
 
-{{< mermaid caption="Filter pushdown is the load-bearing step: enrichment must never receive a superset." >}}
-flowchart TB
-  A[("@db Source database")] --> B["@work Query with filter pushdown"]
-  B --> C["@step Filter stage"]
-  C --> D["@step Enrichment stage"]
-  D --> E["@doc Pack and frame"]
-  E --> F[("@store Object storage")]
-  F --> G["@client Consumer loads payload"]
-{{< /mermaid >}}
+{{< diagram name="02-delivery-pipeline" alt="A source database is queried with the filter pushed down, so the filter stage and then the enrichment stage only ever receive rows that already match it. The result is packed into frames and written to object storage, which a consumer then loads." caption="Filter pushdown is the load-bearing step: enrichment must never receive a superset." >}}
 
 ## Why binary
 
@@ -102,19 +94,7 @@ Once the payload is packed, the remaining problem is the file lifecycle: a consu
 
 The sequence matters, and the ordering is the guarantee:
 
-{{< mermaid caption="The consumer only ever sees a completed object, because the manifest is published last." >}}
-sequenceDiagram
-  participant P as Pipeline
-  participant S as Object storage
-  participant C as Consumer
-  P->>S: Write payload (temporary key)
-  P->>S: Verify record count and checksum
-  P->>S: Publish under final key
-  P->>S: Write delivery manifest last
-  C->>S: List manifest
-  C->>S: Fetch payload by final key
-  C->>C: Re-verify checksum
-{{< /mermaid >}}
+{{< diagram name="03-file-lifecycle" alt="The pipeline writes the payload to a temporary key, verifies record count and checksum, then publishes it under its final key and only afterwards writes the delivery manifest. A consumer finds the manifest, fetches the payload by final key, and re-verifies the checksum itself." caption="The consumer only ever sees a completed object, because the manifest is published last." >}}
 
 The manifest is written last on purpose. A consumer discovers deliveries by listing manifests, so a payload that is fully written and verified but not yet announced is simply not visible yet. That makes "payload exists" and "payload is complete" the same observation, which removes a whole category of partial-read bug without a transaction.
 

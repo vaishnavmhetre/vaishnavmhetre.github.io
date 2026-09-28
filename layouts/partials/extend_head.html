@@ -22,7 +22,6 @@
     if (!btn) return;
     root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
     try { localStorage.setItem(KEY, root.dataset.theme); } catch (err) {}
-    document.dispatchEvent(new CustomEvent("vm:themechange", { detail: { theme: root.dataset.theme } }));
     btn.setAttribute("aria-label", root.dataset.theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
   });
 })();

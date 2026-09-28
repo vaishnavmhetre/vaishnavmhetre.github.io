@@ -46,14 +46,14 @@
      - The two are not in tension: markup is marked trusted, and the only
        author-controlled values inside it never reach an output position.
        Were that to change, the fix belongs inside hero.svg as
-       `| htmlEscape | safeHTML` (the exact pairing mermaid.html uses, and
-       the only pairing that yields exactly one escape round) — NOT an extra
+       `| htmlEscape | safeHTML` (the exact pairing the diagram shortcode uses,
+       and the only pairing that yields exactly one escape round) — NOT an extra
        round here, which would double-escape.
 
    EMPTY OUTPUT FAILS THE BUILD. An invisible hero band is a hole in the page
    that nobody notices until it is live, and `hero: true` would then be
    indistinguishable from a broken template. errorf is non-zero-exit, matching
-   the mermaid shortcode's precedent, and .RelPermalink names the page that
+   the diagram shortcode's precedent, and .RelPermalink names the page that
    broke. */ -}}
 {{- $tpl := "svg/hero.svg" -}}
 {{- $src := resources.Get $tpl -}}

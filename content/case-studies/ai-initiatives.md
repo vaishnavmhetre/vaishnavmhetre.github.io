@@ -21,15 +21,7 @@ The reason is not elegance. It is that the failure modes of a bespoke path stay 
 
 Reuse is not a slogan. It is a concrete set of commitments the AI consumer inherits, and that a bespoke path has to re-earn one at a time.
 
-{{< mermaid caption="One spine, two payloads. The AI path is a consumer of the shared pipeline, not a parallel build." >}}
-flowchart TB
-  A["@store Source systems"] --> B["@work Query and filter"]
-  B --> C["@step Enrichment"]
-  C --> D["@doc File handling"]
-  D --> E["@db Production payload"]
-  D --> F["@db AI training inputs"]
-  F --> G["@work Model or feature store"]
-{{< /mermaid >}}
+{{< diagram name="01-ai-pipeline" alt="Source systems feed a query and filter step, then enrichment, then pack and frame. That stage writes two payloads side by side: a production payload and a set of AI training inputs, which are stored in a model store." caption="One spine, two payloads. The AI path is a consumer of the shared pipeline, not a parallel build." >}}
 
 A consumer sitting on that spine gets, without writing any of it:
 
