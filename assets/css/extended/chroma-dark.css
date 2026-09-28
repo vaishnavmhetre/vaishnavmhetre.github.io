@@ -1,0 +1,56 @@
+/* ============================================================================
+   CHROMA — DARK-THEME COMMENT CORRECTION
+   (assets/css/extended/chroma-dark.css)
+   ----------------------------------------------------------------------------
+   WHY THIS FILE EXISTS. In the dark theme the code surface is `--vm-espresso`
+   (#140B06) and the tokens come from PaperMod's bundled monokai palette, which
+   is drawn for a #272822 background — a LIGHTER surface than this one. Most
+   tokens survive the move; two do not.
+
+   MEASURED, not assumed. Every token class rendered by the site's eight code
+   blocks (SQL, YAML, JSON, Go, bash) was read off the built page and its
+   contrast computed against #140B06. 21 of 23 clear WCAG AA 4.5:1. These two
+   do not, and they are the same colour:
+
+     .c1  Comment          rgb(110,115,141)  4.17:1   FAIL
+     .sd  CommentSingle    rgb(110,115,141)  4.17:1   FAIL
+
+   One rule covers both because they share a value. 4.17:1 is only just under
+   AA, and it is the kind of shortfall that is invisible in a screenshot but
+   real on a laptop panel in a dim room — which is exactly where this theme is
+   meant to be read.
+
+   THE FIX. rgb(150,154,175) — the same hue, lightened. Measured 6.98:1, so it
+   clears AA with headroom rather than landing on the line. Comments stay
+   visually recessive (still the lowest-contrast token class in the block,
+   behind keywords at 9.04:1 and operators at 12.07:1) without going faint.
+   Hue is preserved deliberately: a different colour would read as a different
+   kind of token, and monokai's muted grey is doing real work by not competing
+   with the syntax around it.
+
+   SCOPE. `html[data-theme="dark"]` only, matching chroma-light.css. The dark
+   theme is the site's default, but the attribute is always written by the
+   inline script in head.html before paint, so keying off it is safe and keeps
+   these rules off any future light surface.
+
+   CASCADE. assets/css/extended/ is concatenated alphabetically, so this loads
+   after assets/css/includes/chroma-styles.css (PaperMod's monokai) and wins on
+   order as well as specificity. No !important needed.
+   ============================================================================ */
+
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .c,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .ch,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .cm,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .c1,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .cs,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .cp,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .cpf,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .sd,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .se,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .sh,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .si,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .sx,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .sr,
+html[data-theme="dark"] .vm-article .vm-article-body .chroma .ss {
+    color: rgb(150, 154, 175);
+}

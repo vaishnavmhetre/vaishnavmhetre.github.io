@@ -37,7 +37,7 @@ What it costs, honestly: a binary payload is not inspectable without the reader.
 
 The chain starts by getting the right rows out efficiently. That meant pushing the delivery's filters into the query rather than reading a broad slice and discarding most of it downstream.
 
-```sql {title="observation-extract.sql"}
+```postgresql {title="observation-extract.sql"}
 SELECT
     o.store_id,
     o.week_index,

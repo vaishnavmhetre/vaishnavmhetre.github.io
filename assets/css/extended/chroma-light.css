@@ -42,13 +42,44 @@
    supplies token COLOURS only.
 
    REGENERATING. `hugo gen chromastyles --style=github`, then re-scope every
-   selector and re-check contrast against the light surface. Keep this a
-   generated artefact; hand-editing token colours makes it drift from Chroma.
-   ============================================================================ */
+   selector and re-check contrast against the light surface — every token, not
+   a sample. The corrections below are all cases where the generated value was
+   wrong, so a regeneration is not a no-op. Keep the file a generated artefact
+   plus a corrections block; hand-authoring token colours wholesale makes it
+   drift from Chroma.
+
+   TOKEN COLOUR IS NOT THE WHOLE RULE. Chroma styles pair a foreground with a
+   background (`.err` is light text on a dark block, `.gi` dark green on pale
+   green). Moving a token to a surface with no matching background means
+   resetting BOTH properties. Overriding only `color` leaves the old
+   background in place and produces something worse than the original — see
+   the .err note below for what that looked like. */
 
 /* Background */ html[data-theme="light"] .vm-article .vm-article-body .bg { background-color:#f7f7f7; }
 /* PreWrapper */ html[data-theme="light"] .vm-article .vm-article-body .chroma { background-color:#f7f7f7;-webkit-text-size-adjust:none; }
-/* Error */ html[data-theme="light"] .vm-article .vm-article-body .chroma .err { color:#f6f8fa;background-color:#82071e }
+/* Error — this needs BOTH properties, and getting only one is worse than not
+   touching it at all.
+
+   GitHub pairs #f6f8fa text with a #82071e background, so the near-white text
+   is correct there. The light surface has no dark background to put it on, so
+   the text was re-pointed at the deletion red used by .gd (9.90:1). But the
+   BACKGROUND was left as-is by that change, and the result was
+   color:#82071e on background-color:#82071e — dark red text on a dark red
+   block, which reads as a solid block with the token invisible inside it.
+
+   Chroma's SQL lexer emits `.err` for PostgreSQL positional placeholders
+   ($1, $2), so this is not hypothetical: it is what the `$` in a
+   `ANY($1::int[])` clause was hitting. The block is now fenced as
+   `postgresql`, which lexes them correctly, but the background is still reset
+   here so any future `.err` — a real lexer gap in some other language — cannot
+   paint an unreadable block.
+
+   background-color:transparent rather than a tint: an error token should not
+   repaint the surface it sits on, and monokai's block is sized to the glyph. */
+html[data-theme="light"] .vm-article .vm-article-body .chroma .err {
+    color: #82071e;
+    background-color: transparent;
+}
 /* LineLink */ html[data-theme="light"] .vm-article .vm-article-body .chroma .lnlinks { outline:none;text-decoration:none;color:inherit }
 /* LineTableTD */ html[data-theme="light"] .vm-article .vm-article-body .chroma .lntd { vertical-align:top;padding:0;margin:0;border:0; }
 /* LineTable */ html[data-theme="light"] .vm-article .vm-article-body .chroma .lntable { border-spacing:0;padding:0;margin:0;border:0; }
