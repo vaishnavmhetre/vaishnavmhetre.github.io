@@ -1,0 +1,72 @@
+{{- /* Slice 02 — typed archive (/case-studies/ and /posts/).
+
+       /case-studies/list.html and /posts/list.html carry the SAME body on
+       purpose: the two archives differ only in which page Hugo hands them, so
+       every value below is read off `.` and the duplication carries no logic.
+       Copy lives in content/<section>/_index.md, never in here.
+
+       The H1 is `.Title` from that front matter, which is how
+       /case-studies/ reads "Case Studies" instead of inheriting the
+       hyphenated folder name.
+
+       Entries are PAGINATED rather than truncated: `$paginator.Pages` is only
+       the current page, so growing the archive adds pages instead of silently
+       dropping entries the way a `first N` cap did. At the current size
+       there is exactly one page, so the pager stays hidden. Card headings are
+       <h2> here (the H1 is the parent) vs <h3> inside the /writing/ groups.
+
+       The feed link prefers this section's own feed and falls back to the site
+       feed if the section ever has no RSS output.
+
+       The body sits inside a "main" define block because Hugo only applies
+       layouts/baseof.html to a template that declares at least one define
+       block. Without it the archive renders as a naked fragment: no <html>,
+       no <head>, no PaperMod tokens, and list.css never loads. */ -}}
+{{- define "main" -}}
+{{- $paginator := .Paginate .Pages -}}
+{{- $feed := .OutputFormats.Get "rss" -}}
+{{- if not $feed }}{{ $feed = site.Home.OutputFormats.Get "rss" }}{{ end -}}
+<div class="vm-archive">
+    <header class="vm-archive-head">
+        <p class="vm-eyebrow">Writing archive</p>
+        <h1 class="vm-archive-title">{{ .Title }}</h1>
+        <hr class="vm-rule" aria-hidden="true">
+        {{- with .Content }}
+        <div class="vm-archive-intro">{{ . }}</div>
+        {{- end }}
+        <p class="vm-archive-meta">
+            <a class="vm-archive-back" href="{{ "/writing/" | relURL }}">All writing</a>
+            {{- with $feed }}
+            <a class="vm-feed-link" href="{{ .RelPermalink }}" type="application/rss+xml" title="{{ $.Title }} as RSS">
+                <svg class="vm-feed-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+                    <circle cx="6.4" cy="17.6" r="1.7" fill="currentColor"></circle>
+                    <path d="M4 10.4a9.6 9.6 0 0 1 9.6 9.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                    <path d="M4 4.4a15.6 15.6 0 0 1 15.6 15.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+                Subscribe
+            </a>
+            {{- end }}
+        </p>
+    </header>
+
+    <ol class="vm-entries">
+        {{- range $paginator.Pages }}
+        {{- partial "entry-card.html" (dict "page" . "heading" 2) }}
+        {{- end }}
+    </ol>
+
+    {{- if gt $paginator.TotalPages 1 }}
+    <nav class="vm-pager" aria-label="Pagination">
+        {{- with $paginator.Prev }}
+        <a class="vm-pager-link" href="{{ .URL }}" rel="prev">Newer</a>
+        {{- else }}
+        <span></span>
+        {{- end }}
+        <span class="vm-pager-status">Page {{ $paginator.PageNumber }} of {{ $paginator.TotalPages }}</span>
+        {{- with $paginator.Next }}
+        <a class="vm-pager-link" href="{{ .URL }}" rel="next">Older</a>
+        {{- end }}
+    </nav>
+    {{- end }}
+</div>
+{{- end -}}

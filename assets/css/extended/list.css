@@ -1,0 +1,411 @@
+/* ============================================================================
+   SLICE 02 — WRITING HUB + TYPED ARCHIVES (assets/css/extended/list.css)
+   ----------------------------------------------------------------------------
+   Styles for /writing/ (the hub), /case-studies/ and /posts/ (the typed
+   archives), and the shared .vm-entry card that all three list surfaces
+   render. Joined into the site stylesheet automatically by the CSS seam —
+   no import, no edit to another slice's file.
+
+   Token discipline: every color, font, size, space and duration is
+   var(--vm-*) only. Tokens are declared in custom.css, which this slice
+   does not touch. No hex literals, no @font-face, no @import.
+
+   The surface language is deliberately the same as the homepage cards
+   (glass surface, muted summary, tracked 2xs meta) so a reader moving from
+   the landing page to the archive sees one product. What is new here is the
+   STRUCTURE:
+
+     - entries are stacked full-width rows, not the homepage's 3-up grid.
+       Summaries are two sentences; a 3-up grid would either clip them or
+       leave three ragged columns. Rows also scale past three entries
+       without the card shrinking.
+     - a 3px spine down the card's leading edge encodes the TYPE
+       (accent for a case study, hairline for a post). That is information,
+       not decoration: a skimming reader can tell the two kinds apart
+       before reading a word.
+     - the case-study badge is the single loud element on the card. Posts
+       stay quiet. The accent spends itself on the recruiter path.
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   PAGE RESET — these templates render their own full-width container, so
+   PaperMod's 768px readable-measure clamp on <main class="main"> has to go.
+   Scoped by :has() exactly as chrome.css does it for the home shell, so
+   every other page keeps its measure. (id="top" is the body; #content is
+   the fallback S1's chrome.css guards against too.)
+   --------------------------------------------------------------------------- */
+main.main:has(> .vm-archive),
+#content:has(> .vm-archive) {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   PAGE / GROUP SHELL
+   --------------------------------------------------------------------------- */
+.vm-archive {
+    width: 100%;
+    max-width: var(--vm-container);
+    margin-inline: auto;
+    padding-block: var(--vm-space-section);
+    padding-inline: var(--vm-space-6);
+}
+
+.vm-archive-head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: var(--vm-space-section);
+}
+
+.vm-archive-title {
+    margin: var(--vm-space-3) 0 0;
+    font-family: var(--vm-font-sans);
+    font-weight: 800;
+    font-size: var(--vm-text-h1);
+    line-height: var(--vm-leading-h1);
+    letter-spacing: var(--vm-tracking-h1);
+    color: var(--vm-cream);
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.vm-archive-intro {
+    margin-top: var(--vm-space-5);
+    max-width: 62ch;
+    font-size: var(--vm-text-body);
+    line-height: var(--vm-leading-body);
+    color: var(--vm-body-text);
+}
+
+.vm-archive-intro p {
+    margin: 0 0 var(--vm-space-4);
+}
+
+.vm-archive-intro p:last-child {
+    margin-bottom: 0;
+}
+
+/* Back link + feed link, on one quiet row under the intro. */
+.vm-archive-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--vm-space-5);
+    margin: var(--vm-space-5) 0 0;
+    font-size: var(--vm-text-sm);
+}
+
+.vm-archive-back,
+.vm-feed-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--vm-space-2);
+    padding-bottom: 2px;
+    border-bottom: 1px solid var(--vm-line);
+    color: var(--vm-body-text);
+    font-weight: 500;
+    text-decoration: none;
+    transition: color var(--vm-dur-fast) var(--vm-ease-out),
+        border-color var(--vm-dur-fast) var(--vm-ease-out);
+}
+
+.vm-archive-back:hover,
+.vm-feed-link:hover {
+    color: var(--vm-accent);
+    border-color: var(--vm-accent);
+}
+
+.vm-feed-icon {
+    flex: none;
+    fill: none;
+}
+
+/* Hub groups. The first group sits directly under the header; each later
+   one is separated by a hairline so the two types read as distinct shelves
+   without needing boxes around them. */
+.vm-archive-group+.vm-archive-group {
+    margin-top: var(--vm-space-section);
+    padding-top: var(--vm-space-section);
+    border-top: 1px solid var(--vm-line-hair);
+}
+
+.vm-archive-group-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--vm-space-2);
+    margin-bottom: var(--vm-space-5);
+}
+
+.vm-archive-group-title {
+    margin: 0;
+    font-family: var(--vm-font-sans);
+    font-weight: 800;
+    font-size: var(--vm-text-h2);
+    line-height: var(--vm-leading-snug);
+    letter-spacing: var(--vm-tracking-h1);
+    color: var(--vm-cream);
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.vm-archive-group-title a {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--vm-dur-fast) var(--vm-ease-out);
+}
+
+.vm-archive-group-title a:hover {
+    color: var(--vm-card-accent);
+}
+
+.vm-archive-group-lede {
+    margin: 0;
+    max-width: 62ch;
+    font-size: var(--vm-text-body);
+    line-height: var(--vm-leading-body);
+    color: var(--vm-body-text);
+}
+
+.vm-entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--vm-space-4);
+}
+
+/* ---------------------------------------------------------------------------
+   .vm-entry — the shared card
+   --------------------------------------------------------------------------- */
+.vm-entry {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--vm-space-3);
+    min-width: 0;
+    /* Extra leading padding leaves room for the type spine. */
+    padding: var(--vm-space-5) var(--vm-space-5) var(--vm-space-5) var(--vm-space-6);
+    background: var(--vm-card-dark);
+    border: 1px solid var(--vm-card-line-soft);
+    border-radius: var(--vm-radius-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: border-color var(--vm-dur-base) var(--vm-ease-out),
+        transform var(--vm-dur-base) var(--vm-ease-out);
+}
+
+/* Type spine — reads the badge, so the badge does not have to shout. */
+.vm-entry::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: var(--vm-space-4);
+    bottom: var(--vm-space-4);
+    width: 3px;
+    border-radius: 2px;
+    background: var(--vm-card-line-strong);
+}
+
+.vm-entry--case::before {
+    background: var(--vm-accent);
+}
+
+.vm-entry--case {
+    border-color: var(--vm-card-line-strong);
+}
+
+/* Type badge — tracked 2xs caps, matching the .vm-eyebrow idiom. The case
+   study gets the accent outline; the post stays hairline-quiet. */
+.vm-entry-type {
+    align-self: flex-start;
+    margin: 0;
+    padding: 3px 9px;
+    border: 1px solid var(--vm-card-line-strong);
+    border-radius: var(--vm-radius-pill);
+    font-size: var(--vm-text-2xs);
+    font-weight: 600;
+    letter-spacing: var(--vm-tracking-eyebrow);
+    line-height: var(--vm-leading-snug);
+    text-transform: uppercase;
+    color: var(--vm-card-muted-2);
+}
+
+.vm-entry--case .vm-entry-type {
+    border-color: var(--vm-accent);
+    color: var(--vm-card-eyebrow);
+}
+
+.vm-entry-title {
+    margin: 0;
+    max-width: var(--vm-measure);
+    font-family: var(--vm-font-sans);
+    font-size: var(--vm-text-h3);
+    font-weight: 700;
+    line-height: var(--vm-leading-snug);
+    letter-spacing: -0.015em;
+    color: var(--vm-card-ink);
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.vm-entry-title a {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--vm-dur-fast) var(--vm-ease-out);
+}
+
+.vm-entry-title a:hover {
+    color: var(--vm-card-accent);
+}
+
+.vm-entry-summary {
+    margin: 0;
+    max-width: 62ch;
+    font-size: var(--vm-text-body);
+    line-height: var(--vm-leading-body);
+    color: var(--vm-card-body);
+}
+
+/* Meta row: date · reading time, then the tag pills pushed right. The
+   hairline border on the reading time is a structural separator, not a
+   decorative dot. */
+.vm-entry-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--vm-space-3);
+    width: 100%;
+    margin-top: auto;
+    padding-top: var(--vm-space-1);
+    font-size: var(--vm-text-2xs);
+    font-weight: 500;
+    line-height: var(--vm-leading-snug);
+    color: var(--vm-card-muted);
+}
+
+.vm-entry-read {
+    padding-left: var(--vm-space-3);
+    border-left: 1px solid var(--vm-card-line-hair);
+}
+
+/* Tag pills. S5 filters these to ≥2-entry tags without touching this CSS —
+   a hidden pill needs no extra class. */
+.vm-entry-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    list-style: none;
+    margin: 0 0 0 auto;
+    padding: 0;
+}
+
+.vm-entry-pill {
+    display: inline-flex;
+    padding: 4px 9px;
+    border: 1px solid var(--vm-card-line-strong);
+    border-radius: var(--vm-radius-pill);
+    font-size: var(--vm-text-2xs);
+    font-weight: 500;
+    color: var(--vm-card-muted-2);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--vm-dur-fast) var(--vm-ease-out),
+        border-color var(--vm-dur-fast) var(--vm-ease-out);
+}
+
+.vm-entry-pill:hover,
+.vm-entry-pill:focus-visible {
+    color: var(--vm-card-accent);
+    border-color: var(--vm-card-accent);
+}
+
+/* Keyboard focus has to be legible on the card, not only on the link. */
+.vm-entry:focus-within {
+    border-color: var(--vm-accent);
+}
+
+@media (hover: hover) {
+    .vm-entry:hover {
+        border-color: var(--vm-card-line-strong);
+        transform: translateY(-2px);
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   PAGER — rendered only when the archive actually spans pages. Present so
+   growth adds pages rather than hiding entries behind a cap.
+   --------------------------------------------------------------------------- */
+.vm-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--vm-space-4);
+    margin-top: var(--vm-space-6);
+    font-size: var(--vm-text-sm);
+    color: var(--vm-body-text);
+}
+
+.vm-pager-link {
+    color: var(--vm-accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.vm-pager-link:hover {
+    text-decoration: underline;
+}
+
+.vm-pager-status {
+    font-size: var(--vm-text-2xs);
+    letter-spacing: var(--vm-tracking-eyebrow);
+    text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------------------
+   NARROW — pills drop below the meta row rather than squeezing the date.
+   --------------------------------------------------------------------------- */
+@media (max-width: 600px) {
+    .vm-entry {
+        padding: var(--vm-space-4);
+    }
+
+    .vm-entry-pills {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .vm-entry-read {
+        padding-left: 0;
+        border-left: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .vm-archive {
+        padding-inline: var(--vm-space-5);
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   REDUCED MOTION — keep the affordance, drop the travel. The card still
+   responds to hover and focus via color.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+
+    .vm-entry,
+    .vm-entry-title a,
+    .vm-entry-pill,
+    .vm-archive-back,
+    .vm-feed-link,
+    .vm-archive-group-title a {
+        transition: none;
+    }
+
+    .vm-entry:hover {
+        transform: none;
+    }
+}

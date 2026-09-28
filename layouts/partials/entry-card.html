@@ -1,0 +1,48 @@
+{{- /* Slice 02 — the shared .vm-entry card. ONE card for both content types,
+       so /writing/ and the two typed archives list entries identically.
+
+       Context: a DICT, always —
+         page:    the regular page being rendered
+         heading: 2 or 3, the <hN> to use for the entry title. Callers inside
+                  the /writing/ groups pass 3 (an <h2> group title is the
+                  parent); the typed archives pass 2 because the page H1 is
+                  the parent. Default 2, so a bare `dict "page" p` still
+                  renders a correct heading order.
+
+       Type badge (.vm-entry--case / --post) is derived from the PAGE's
+       section, not from the call site — the badge is a property of the entry,
+       so a card cannot be mislabelled by a careless caller. CSS lives in
+       assets/css/extended/list.css.
+
+       Tag pills: every tag on the entry is rendered, sourced through
+       GetTerms so the hrefs are real taxonomy pages. S5 adds the "≥2 entries
+       so the axis is worth showing" filter here; it is deliberately NOT
+       applied yet (additive, one line: wrap the range in a length check). */ -}}
+{{- $page := .page -}}
+{{- $level := .heading | default 2 -}}
+{{- $isCase := eq $page.Section "case-studies" -}}
+{{- $type := cond $isCase "case" "post" -}}
+{{- $label := cond $isCase "Case study" "Post" -}}
+<article class="vm-entry vm-entry--{{ $type }}">
+    <p class="vm-entry-type">{{ $label }}</p>
+    <h{{ $level }} class="vm-entry-title"><a href="{{ $page.RelPermalink }}">{{ $page.Title }}</a></h{{ $level }}>
+    {{- with $page.Description | default $page.Summary }}
+    {{- $summary := trim (. | plainify | htmlUnescape | replaceRE `\s+` " ") " " }}
+    <p class="vm-entry-summary">{{ $summary }}</p>
+    {{- end }}
+    <div class="vm-entry-meta">
+        {{- if not $page.Date.IsZero }}
+        <time class="vm-entry-date" datetime="{{ $page.Date.Format "2006-01-02" }}">{{ $page.Date.Format (site.Params.DateFormat | default "January 2, 2006") }}</time>
+        {{- end }}
+        {{- with $page.ReadingTime }}
+        <span class="vm-entry-read">{{ . }} min read</span>
+        {{- end }}
+        {{- with $page.GetTerms "tags" }}
+        <ul class="vm-entry-pills">
+            {{- range . }}
+            <li><a class="vm-entry-pill" href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>
+            {{- end }}
+        </ul>
+        {{- end }}
+    </div>
+</article>

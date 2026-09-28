@@ -1,0 +1,95 @@
+{{- /* Slice 02 (contract D1) — /writing/, the one front door. Groups the two
+       content types instead of dropping the reader on a flat mixed feed.
+
+       Case studies are listed FIRST, before posts, and that order is
+       deliberate rather than cosmetic: a case study is the recruiter path,
+       so the evidence a hiring reader needs is above the fold and the
+       exploratory reading comes after it.
+
+       Nothing is capped. Each group ranges the full regular-page set of its
+       section, so every published entry is reachable from the hub (the old
+       `first 3` truncation lived on the homepage and never reached here).
+
+       The visible feed link points at the SITE feed, not this section's own:
+       /case-studies/ and /posts/ are sibling sections rather than children
+       of /writing/, so a section-scoped feed for writing would be empty.
+       An empty /writing/index.xml is still published — Hugo's `outputs` config
+       is keyed by page KIND (home/section/term), not by section name, so the
+       only way to drop RSS for one section is to drop it for every section,
+       which would remove the /case-studies/ and /posts/ feeds the site
+       verification requires. Left as Hugo's default; the hub's visible link
+       points at the non-empty site feed instead.
+
+       Group headings link to their own typed archive; the lede under each is
+       the sibling section's front-matter `description`, so the copy has one
+       home instead of living in two templates.
+
+       The body sits inside a "main" define block because Hugo only applies
+       layouts/baseof.html to a template that declares at least one define
+       block. Without it the hub renders as a naked fragment: no <html>,
+       no <head>, no PaperMod tokens, and list.css never loads. */ -}}
+{{- define "main" -}}
+{{- $caseSection := site.GetPage "/case-studies" -}}
+{{- $postSection := site.GetPage "/posts" -}}
+{{- $cases := where site.RegularPages "Section" "case-studies" -}}
+{{- $posts := where site.RegularPages "Section" "posts" -}}
+{{- $feed := site.Home.OutputFormats.Get "rss" -}}
+<div class="vm-archive">
+    <header class="vm-archive-head">
+        <p class="vm-eyebrow">All writing</p>
+        <h1 class="vm-archive-title">{{ .Title }}</h1>
+        <hr class="vm-rule" aria-hidden="true">
+        {{- with .Content }}
+        <div class="vm-archive-intro">{{ . }}</div>
+        {{- end }}
+        {{- with $feed }}
+        <p class="vm-archive-meta">
+            <a class="vm-feed-link" href="{{ .RelPermalink }}" type="application/rss+xml" title="All writing as RSS">
+                <svg class="vm-feed-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+                    <circle cx="6.4" cy="17.6" r="1.7" fill="currentColor"></circle>
+                    <path d="M4 10.4a9.6 9.6 0 0 1 9.6 9.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                    <path d="M4 4.4a15.6 15.6 0 0 1 15.6 15.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+                Subscribe to all writing
+            </a>
+        </p>
+        {{- end }}
+    </header>
+
+    {{- with $cases }}
+    <section class="vm-archive-group" aria-labelledby="vm-group-cases">
+        <div class="vm-archive-group-head">
+            <h2 class="vm-archive-group-title" id="vm-group-cases">
+                <a href="{{ $caseSection.RelPermalink }}">{{ $caseSection.LinkTitle }}</a>
+            </h2>
+            {{- with $caseSection.Description }}
+            <p class="vm-archive-group-lede">{{ . }}</p>
+            {{- end }}
+        </div>
+        <ol class="vm-entries">
+            {{- range .ByDate.Reverse }}
+            {{- partial "entry-card.html" (dict "page" . "heading" 3) }}
+            {{- end }}
+        </ol>
+    </section>
+    {{- end }}
+
+    {{- with $posts }}
+    <section class="vm-archive-group" aria-labelledby="vm-group-posts">
+        <div class="vm-archive-group-head">
+            <h2 class="vm-archive-group-title" id="vm-group-posts">
+                <a href="{{ $postSection.RelPermalink }}">{{ $postSection.LinkTitle }}</a>
+            </h2>
+            {{- with $postSection.Description }}
+            <p class="vm-archive-group-lede">{{ . }}</p>
+            {{- end }}
+        </div>
+        <ol class="vm-entries">
+            {{- range .ByDate.Reverse }}
+            {{- partial "entry-card.html" (dict "page" . "heading" 3) }}
+            {{- end }}
+        </ol>
+    </section>
+    {{- end }}
+</div>
+{{- end -}}
