@@ -17,9 +17,15 @@
    visual coherence. It fails contrast: measured against this site's light
    surface (#FFF7ED), 9 of Latte's 13 token colours miss WCAG AA — orange 2.81,
    muted 2.04, teal 3.53. Latte is tuned for its own #eff1f5 background and does
-   not survive being placed on a lighter one. `github` is purpose-built for a
-   light surface: on the same background only its line-number grey falls short,
-   and that one is corrected below. Coherence lost, legibility kept.
+   not survive being placed on a lighter one. Coherence lost, legibility kept.
+
+   `github` IS NOT A DROP-IN. It is purpose-built for a light surface, but for
+   ITS OWN surface, and three of its values assume a dark background or are
+   plain white. Every token here was measured against #FFF7ED; the three
+   corrections (line numbers, .w, .err) and the hand-added class block at the
+   foot of this file all exist because the generated values failed that check.
+   The palette as generated was NOT contrast-clean and shipping it unedited left
+   SQL and YAML partly invisible in light mode.
 
    LINE NUMBERS. GitHub ships .lnt/.ln at #7f7f7f (3.77:1 here). Line numbers
    are real text, so they are darkened to #57606a (6.02:1) rather than left to
@@ -112,10 +118,51 @@
 /* GenericInserted */ html[data-theme="light"] .vm-article .vm-article-body .chroma .gi { color:#116329;background-color:#dafbe1 }
 /* GenericOutput */ html[data-theme="light"] .vm-article .vm-article-body .chroma .go { color:#1f2328 }
 /* GenericUnderline */ html[data-theme="light"] .vm-article .vm-article-body .chroma .gl { text-decoration:underline }
-/* TextWhitespace */ html[data-theme="light"] .vm-article .vm-article-body .chroma .w { color:#fff }
+/* TextWhitespace — GitHub ships #fff here, 1.06:1 on this surface: invisible.
+   Whitespace is not content, so it takes the same colour as the default text
+   rather than being tinted. Inheriting keeps it correct if the surface moves. */
+html[data-theme="light"] .vm-article .vm-article-body .chroma .w { color:inherit }
 /* LineNumbers / LineNumbersTable — darkened for AA; see header. GitHub's own
    #7f7f7f measures 3.77:1 on this surface. */
 html[data-theme="light"] .vm-article .vm-article-body .chroma .lnt,
 html[data-theme="light"] .vm-article .vm-article-body .chroma .ln {
     color: #57606a;
 }
+
+/* Error — GitHub pairs #f6f8fa text with a #82071e background, so the near
+   white is correct there. That pairing is dropped here (only the colour is
+   overridden, the dark background is not), which left the text at 1.00:1 on a
+   light surface — the single worst token in the file. Re-pointed at the
+   deletion red used by .gd, which measures 9.90:1 and reads as an error
+   without needing the background. */
+html[data-theme="light"] .vm-article .vm-article-body .chroma .err { color:#82071e }
+
+/* ---------------------------------------------------------------------------
+   CLASSES THE GENERATED `github` PALETTE DOES NOT DEFINE.
+   ---------------------------------------------------------------------------
+   `hugo gen chromastyles --style=github` is older than the lexers in use, so
+   some classes it emits have no entry in its output. An undefined class gets
+   NO rule from this file and therefore falls through to PaperMod's bundled
+   monokai palette — a DARK palette, whose tokens are light. On a light code
+   surface those tokens are unreadable, and they fail silently: the block still
+   builds, still looks like code, and only the affected spans vanish.
+
+   Measured on this surface (#FFF7ED) before being defined here:
+     .cl  rgb(213,213,214)  1.19:1   SQL/YAML line wrapper
+     .l   rgb(213,213,214)  1.19:1   bare literal
+     .n   rgb(213,213,214)  1.19:1   bare name
+
+   Defined explicitly so they cannot fall through again. Value is GitHub's own
+   default text colour for a name or literal (14.88:1); the line wrapper .cl
+   takes the same, so a chunk reads as ordinary body text. */
+html[data-theme="light"] .vm-article .vm-article-body .chroma .n,
+html[data-theme="light"] .vm-article .vm-article-body .chroma .nx,
+html[data-theme="light"] .vm-article .vm-article-body .chroma .py,
+html[data-theme="light"] .vm-article .vm-article-body .chroma .l,
+html[data-theme="light"] .vm-article .vm-article-body .chroma .ld,
+html[data-theme="light"] .vm-article .vm-article-body .chroma .cl,
+html[data-theme="light"] .vm-article .vm-article-body .chroma .lntd,
+html[data-theme="light"] .vm-article .vm-article-body .chroma .lntable {
+    color: #1f2328;
+}
+
